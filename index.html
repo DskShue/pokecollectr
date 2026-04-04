@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PokéCollectr" />
+  <meta name="theme-color" content="#000000" />
+  <title>PokéCollectr</title>
+  <link rel="manifest" href="#" id="manifest-placeholder" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script>
+    const manifest={name:"PokéCollectr",short_name:"PokéCollectr",description:"Personal Pokémon TCG collection tracker",start_url:"./",display:"standalone",background_color:"#000000",theme_color:"#000000",orientation:"portrait-primary",icons:[{src:"data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#000"/><text x="256" y="340" font-size="320" text-anchor="middle" fill="#4ecca3">⬤</text></svg>'),sizes:"any",type:"image/svg+xml",purpose:"any maskable"}]};
+    const blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
+    document.getElementById("manifest-placeholder").href=URL.createObjectURL(blob);
+    const swCode=`self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>{if(e.request.method==='GET')e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));});`;
+    const swBlob=new Blob([swCode],{type:"application/javascript"});
+    if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register(URL.createObjectURL(swBlob),{scope:"./"}).catch(()=>{}));
+    let dp=null;
+    window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();dp=e;const b=document.getElementById("pwa-btn");if(b)b.style.display="block";});
+    window.addEventListener("appinstalled",()=>{dp=null;const b=document.getElementById("pwa-btn");if(b)b.style.display="none";});
+    window.triggerInstall=()=>{if(dp){dp.prompt();dp.userChoice.then(()=>{dp=null;});}};
+  </script>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+    html{background:#000;height:100%;overflow:hidden;}
+    body{background:#000;height:100%;overflow:hidden;padding-top:env(safe-area-inset-top);}
+    #root{position:fixed;top:0;left:0;right:0;bottom:0;background:#000;display:flex;flex-direction:column;overflow:hidden;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    .fade-up{animation:fadeUp 0.25s ease both}
+    .cam-pulse{animation:pulse 2.5s ease infinite}
+    .tap{transition:transform 0.12s,opacity 0.12s;cursor:pointer;}
+    .tap:active{transform:scale(0.94);opacity:0.75;}
+    .nav-i{transition:color 0.15s;cursor:pointer;}
+    ::-webkit-scrollbar{display:none;}
+    input,select{outline:none;-webkit-appearance:none;}
+    input::placeholder{color:#3a3a3a;}
+    .ts{background:linear-gradient(90deg,#4ecca3,#81e6d9,#4ecca3);background-size:200% 100%;animation:shimmer 2s linear infinite;-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .bnav{background:#000!important;border-top:1px solid #1a1a1a;display:flex;align-items:center;padding:8px 0;padding-bottom:calc(10px + env(safe-area-inset-bottom));flex-shrink:0;z-index:50;}
+    .bnav::after{content:"";position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom);background:#000;z-index:49;}
+    .pill{display:flex;background:#111;border-radius:24px;padding:3px;border:1px solid #1e1e1e;}
+    .po{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all 0.15s;}
+    .pa{background:#4ecca3;color:#000;}
+    .pi{background:transparent;color:#555;}
+    .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;}
+    .chip{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;white-space:nowrap;transition:all 0.15s;}
+    .ca{background:#4ecca3;color:#000;}
+    .ci{background:#111;color:#555;border:1px solid #222;}
+    .trow{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:14px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:opacity 0.12s;}
+    .trow:active{opacity:0.7;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef,useCallback,useMemo,useEffect}=React;
+
+// ── APIs ──────────────────────────────────────────────────────────────────────
+async function tcgSearch(q){try{const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(q)}"&pageSize=20&orderBy=-set.releaseDate`);const d=await r.json();return d.data||[];}catch{return[];}}
+// ── TREND DATA FETCHERS ───────────────────────────────────────────────────────
+// Fetch multiple rarity buckets in parallel for real populated data
+async function fetchTrendData(){
+  const queries=[
+    `rarity:"Special Illustration Rare"`,
+    `rarity:"Hyper Rare"`,
+    `rarity:"Secret Rare"`,
+    `rarity:"Illustration Rare"`,
+    `rarity:"Ultra Rare"`,
+  ];
+  const results=await Promise.all(queries.map(async q=>{
+    try{
+      const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=24&orderBy=-set.releaseDate`);
+      const d=await r.json();return d.data||[];
+    }catch{return[];}
+  }));
+  // Flatten, dedupe by id, enrich with price metrics
+  const seen=new Set();
+  const all=results.flat().filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;});
+  return all.map(c=>{
+    const p=c.tcgplayer?.prices;
+    const v=p?.holofoil||p?.["1stEditionHolofoil"]||p?.normal||p?.reverseHolofoil;
+    if(!v?.market)return null;
+    const low=v.low||v.market*0.7;
+    const high=v.high||v.market*1.3;
+    const spread=high-low;
+    const spreadPct=low>0?(spread/low)*100:0;
+    // Price vs midpoint: above mid = "gaining" territory, below = "softening"
+    const mid=(low+high)/2;
+    const vsLow=low>0?((v.market-low)/low)*100:0;
+    const vsHigh=high>0?((v.market-high)/high)*100:0; // negative = below high
+    return{...c,_v:{...v,low,high},_spread:spreadPct,_vsLow:vsLow,_vsHigh:vsHigh,_market:v.market,_spread$:spread};
+  }).filter(Boolean);
+}
+
+// Fetch top cards by raw market value across all rarities
+async function fetchTopValue(){
+  try{
+    const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=rarity:"Special Illustration Rare" OR rarity:"Hyper Rare" OR rarity:"Secret Rare" OR rarity:"Ultra Rare" OR rarity:"Illustration Rare"&pageSize=50&orderBy=-set.releaseDate`);
+    const d=await r.json();
+    return(d.data||[]).map(c=>{
+      const p=c.tcgplayer?.prices;
+      const v=p?.holofoil||p?.["1stEditionHolofoil"]||p?.normal||p?.reverseHolofoil;
+      if(!v?.market)return null;
+      return{...c,_market:v.market,_v:v};
+    }).filter(Boolean).sort((a,b)=>b._market-a._market);
+  }catch{return[];}
+}
+
+// ── TRENDS TAB ────────────────────────────────────────────────────────────────
+function TrendsTab({collection,onTap}){
+  const [mode,setMode]=useState("global");
+  const [fmt,setFmt]=useState("pct");
+  const [filter,setFilter]=useState("highest");
+  const [data,setData]=useState([]);
+  const [topVal,setTopVal]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [loaded,setLoaded]=useState(false);
+
+  useEffect(()=>{
+    if(mode!=="global"||loaded)return;
+    setLoading(true);
+    Promise.all([fetchTrendData(),fetchTopValue()]).then(([td,tv])=>{
+      setData(td);setTopVal(tv);setLoading(false);setLoaded(true);
+    });
+  },[mode,loaded]);
+
+  const sorted=useMemo(()=>{
+    if(filter==="highest")return[...topVal].slice(0,25);
+    if(filter==="volatile")return[...data].sort((a,b)=>b._spread-a._spread).slice(0,25);
+    if(filter==="nearHigh")return[...data].filter(c=>c._vsHigh>-10).sort((a,b)=>b._market-a._market).slice(0,25);
+    if(filter==="softening")return[...data].filter(c=>c._vsHigh<-20).sort((a,b)=>a._vsHigh-b._vsHigh).slice(0,25);
+    return topVal.slice(0,25);
+  },[data,topVal,filter]);
+
+  // My collection enriched
+  const myMovers=useMemo(()=>collection.filter(e=>e.tcgCard).map(e=>{
+    const p=e.tcgCard.tcgplayer?.prices;
+    const v=p?.holofoil||p?.["1stEditionHolofoil"]||p?.normal||p?.reverseHolofoil;
+    if(!v?.market)return null;
+    const low=v.low||v.market*0.7;
+    const high=v.high||v.market*1.3;
+    const vsLow=low>0?((v.market-low)/low)*100:0;
+    const vsHigh=high>0?((v.market-high)/high)*100:0;
+    const spread$=high-low;
+    return{...e,_v:{...v,low,high},_vsLow:vsLow,_vsHigh:vsHigh,_market:v.market,_spread$:spread$};
+  }).filter(Boolean),[collection]);
+
+  const myByVal=useMemo(()=>[...myMovers].sort((a,b)=>b._market-a._market),[myMovers]);
+  const myHot=useMemo(()=>[...myMovers].sort((a,b)=>b._vsLow-a._vsLow).slice(0,10),[myMovers]);
+  const mySoft=useMemo(()=>[...myMovers].sort((a,b)=>a._vsHigh-b._vsHigh).slice(0,10),[myMovers]);
+
+  const fmtChg=(pct,dollar)=>{
+    if(fmt==="pct")return{val:`${pct>=0?"+":""}${pct.toFixed(1)}%`,col:pct>=0?"#4ecca3":"#f87171"};
+    const a=Math.abs(dollar);return{val:`${dollar>=0?"+":"-"}$${a.toFixed(2)}`,col:dollar>=0?"#4ecca3":"#f87171"};
+  };
+
+  const FILTERS=[
+    ["highest","💎 Most Valuable"],
+    ["volatile","⚡ Most Volatile"],
+    ["nearHigh","🔥 Near 52w High"],
+    ["softening","📉 Price Softening"],
+  ];
+
+  const MY_FILTERS=[["value","💎 By Value"],["hot","🔥 Trading High"],["soft","📉 Softening"]];
+  const [myFilter,setMyFilter]=useState("value");
+
+  const myList=myFilter==="value"?myByVal:myFilter==="hot"?myHot:mySoft;
+
+  return(
+    <div style={{padding:"22px 18px 16px"}} className="fade-up">
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontFamily:"'Rajdhani',sans-serif",fontSize:28,fontWeight:700,letterSpacing:2}}>TRENDS</div>
+        <div className="pill">
+          <button className={`po ${fmt==="pct"?"pa":"pi"}`} onClick={()=>setFmt("pct")}>%</button>
+          <button className={`po ${fmt==="dollar"?"pa":"pi"}`} onClick={()=>setFmt("dollar")}>$</button>
+        </div>
+      </div>
+
+      {/* Mode toggle */}
+      <div className="pill" style={{marginBottom:14,borderRadius:12}}>
+        <button className={`po ${mode==="global"?"pa":"pi"}`} style={{flex:1,borderRadius:10}} onClick={()=>setMode("global")}>🌍 Market</button>
+        <button className={`po ${mode==="mine"?"pa":"pi"}`} style={{flex:1,borderRadius:10}} onClick={()=>setMode("mine")}>📦 My Cards</button>
+      </div>
+
+      {/* ── GLOBAL ── */}
+      {mode==="global"&&<>
+        <div className="chips">
+          {FILTERS.map(([id,label])=>(
+            <button key={id} className={`chip ${filter===id?"ca":"ci"}`} onClick={()=>setFilter(id)}>{label}</button>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div style={{background:"#080808",border:"1px solid #1a1a1a",borderRadius:10,padding:"10px 12px",marginBottom:12,fontSize:11,color:"#555",lineHeight:1.6}}>
+          {filter==="highest"&&"💎 Top cards ranked by current TCGPlayer market price — the most valuable cards in the game right now."}
+          {filter==="volatile"&&"⚡ Cards with the biggest gap between their lowest and highest recent sale — high activity, unpredictable pricing."}
+          {filter==="nearHigh"&&"🔥 Cards trading within 10% of their recent high — strong demand, buyers paying close to peak price."}
+          {filter==="softening"&&"📉 Cards trading 20%+ below their recent high — price has cooled, potential buy opportunities."}
+        </div>
+
+        {loading&&<div style={{textAlign:"center",padding:40}}><Spin/><div style={{color:"#4ecca3",fontSize:13,marginTop:14}}>Loading market data…</div></div>}
+
+        {!loading&&sorted.length===0&&loaded&&(
+          <div style={{textAlign:"center",padding:40,color:"#444"}}>
+            <div style={{fontSize:32,marginBottom:8}}>🔍</div>
+            <div>No cards match this filter right now</div>
+          </div>
+        )}
+
+        {!loading&&sorted.map((card,i)=>{
+          const v=card._v||card.tcgplayer?.prices?.holofoil||card.tcgplayer?.prices?.normal;
+          if(!v)return null;
+          const market=card._market||v.market;
+          const low=card._v?.low||v.low||market*0.7;
+          const high=card._v?.high||v.high||market*1.3;
+          // What we show depends on filter
+          let badge=null;
+          let pct=0,dollar=0;
+          if(filter==="highest"){pct=low>0?((market-low)/low)*100:0;dollar=market-low;badge=null;}
+          if(filter==="volatile"){pct=card._spread||0;dollar=card._spread$||0;badge="spread";}
+          if(filter==="nearHigh"){pct=card._vsHigh||0;dollar=market-high;badge="vs high";}
+          if(filter==="softening"){pct=card._vsHigh||0;dollar=market-high;badge="vs high";}
+          const {val,col}=fmtChg(pct,dollar);
+          return(
+            <div key={card.id} className="trow" onClick={()=>onTap(card)}>
+              <div style={{color:"#2a2a2a",fontSize:11,width:18,fontWeight:700,flexShrink:0,textAlign:"center"}}>#{i+1}</div>
+              <img src={card.images?.small} alt="" style={{width:42,borderRadius:6,flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:600,fontSize:13,color:"#ddd",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div>
+                <div style={{color:"#555",fontSize:11,marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.set?.name}</div>
+                {card.rarity&&<div style={{marginTop:3}}><Tag label={card.rarity} color={rc(card.rarity)}/></div>}
+              </div>
+              <div style={{textAlign:"right",flexShrink:0,minWidth:70}}>
+                <div style={{color:"#fff",fontWeight:700,fontSize:14}}>{fmtUSD(market)}</div>
+                {filter!=="highest"&&<div style={{color:col,fontSize:11,fontWeight:600,marginTop:2}}>{val} {badge&&<span style={{color:"#333",fontWeight:400}}>({badge})</span>}</div>}
+                {filter==="highest"&&<div style={{color:"#555",fontSize:10,marginTop:2}}>L {fmtUSD(low)} · H {fmtUSD(high)}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </>}
+
+      {/* ── MY CARDS ── */}
+      {mode==="mine"&&<>
+        {collection.length===0&&(
+          <div style={{textAlign:"center",padding:48,color:"#444"}}>
+            <div style={{fontSize:36,marginBottom:10}}>📦</div>
+            <div style={{fontSize:14}}>Add cards to your collection first</div>
+          </div>
+        )}
+        {collection.length>0&&<>
+          <div className="chips">
+            {MY_FILTERS.map(([id,label])=>(
+              <button key={id} className={`chip ${myFilter===id?"ca":"ci"}`} onClick={()=>setMyFilter(id)}>{label}</button>
+            ))}
+          </div>
+          <div style={{background:"#080808",border:"1px solid #1a1a1a",borderRadius:10,padding:"10px 12px",marginBottom:12,fontSize:11,color:"#555",lineHeight:1.6}}>
+            {myFilter==="value"&&"💎 Your most valuable cards ranked by current market price."}
+            {myFilter==="hot"&&"🔥 Your cards trading closest to their recent high — strong demand right now."}
+            {myFilter==="soft"&&"📉 Your cards furthest below their recent high — prices have cooled since peak."}
+          </div>
+          {myList.length===0&&<div style={{textAlign:"center",padding:28,color:"#444",fontSize:13}}>No price data available for your cards yet</div>}
+          {myList.map((entry,i)=>{
+            const name=entry.tcgCard?.name||entry.aiName||"Unknown";
+            const img=entry.tcgCard?.images?.small;
+            const market=entry._market;
+            const low=entry._v.low;
+            const high=entry._v.high;
+            let pct=0,dollar=0;
+            if(myFilter==="value"||myFilter==="hot"){pct=entry._vsLow;dollar=market-low;}
+            if(myFilter==="soft"){pct=entry._vsHigh;dollar=market-high;}
+            const {val,col}=fmtChg(pct,dollar);
+            return(
+              <div key={entry.id} className="trow">
+                <div style={{color:"#2a2a2a",fontSize:11,width:18,fontWeight:700,flexShrink:0,textAlign:"center"}}>#{i+1}</div>
+                {img?<img src={img} alt="" style={{width:42,borderRadius:6,flexShrink:0}}/>:<div style={{width:42,height:58,background:"#1a1a1a",borderRadius:6,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🃏</div>}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:13,color:"#ddd",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div>
+                  <div style={{color:"#555",fontSize:11,marginTop:1}}>{entry.tcgCard?.set?.name||"—"}</div>
+                  <div style={{color:"#333",fontSize:10}}>{entry.condition||"—"}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0,minWidth:70}}>
+                  <div style={{color:"#fff",fontWeight:700,fontSize:14}}>{fmtUSD(market)}</div>
+                  {myFilter!=="value"&&<div style={{color:col,fontSize:11,fontWeight:600,marginTop:2}}>{val}</div>}
+                  {myFilter==="value"&&<div style={{color:"#555",fontSize:10,marginTop:2}}>L {fmtUSD(low)} · H {fmtUSD(high)}</div>}
+                  <div style={{color:"#2a2a2a",fontSize:10}}>cond adj: ${(market*(COND_MULT[entry.condition]||1)).toFixed(2)}</div>
+                </div>
+              </div>
+            );
+          })}
+          {/* Collection summary */}
+          <div style={{background:"#080808",border:"1px solid #1a1a1a",borderRadius:12,padding:14,marginTop:16}}>
+            <div style={{color:"#444",fontSize:10,letterSpacing:2,marginBottom:10}}>COLLECTION PRICE RANGE</div>
+            {[["Avg Market Price",`$${myMovers.length?(myMovers.reduce((s,e)=>s+e._market,0)/myMovers.length).toFixed(2):"0.00"}`,"#fff"],
+              ["Highest Card",`$${myMovers.length?Math.max(...myMovers.map(e=>e._market)).toFixed(2):"0.00"}`,"#4ecca3"],
+              ["Lowest Card",`$${myMovers.length?Math.min(...myMovers.map(e=>e._market)).toFixed(2):"0.00"}`,"#f87171"],
+              ["Cards w/ Price Data",`${myMovers.length} / ${collection.length}`,"#a78bfa"],
+            ].map(([l,v,c])=>(
+              <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #111"}}>
+                <span style={{color:"#555",fontSize:12}}>{l}</span>
+                <span style={{color:c,fontWeight:600,fontSize:13}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </>}
+      </>}
+    </div>
+  );
+}
+
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
+function App(){
+  const [tab,setTab]=useState("home");
+  const [col,setCol]=useState(loadCol);
+  const [scanImg,setScanImg]=useState(null);
+  const [scanAI,setScanAI]=useState(null);
+  const [scanLoad,setScanLoad]=useState(false);
+  const [scanErr,setScanErr]=useState(null);
+  const [mtchs,setMtchs]=useState([]);
+  const [sel,setSel]=useState(null);
+  const [flash,setFlash]=useState(false);
+  const [ovCond,setOvCond]=useState(null);
+  const [cfilt,setCfilt]=useState("");
+  const [csort,setCsort]=useState("newest");
+  const [viewE,setViewE]=useState(null);
+  const [delC,setDelC]=useState(false);
+  const [sq,setSq]=useState("");
+  const [sres,setSres]=useState([]);
+  const [sload,setSload]=useState(false);
+  const [sdone,setSdone]=useState(false);
+  const [prev,setPrev]=useState(null);
+  const fRef=useRef();
+  const cRef=useRef();
+
+  const tv=useMemo(()=>col.reduce((s,e)=>s+cardVal(e.tcgCard)*(COND_MULT[e.condition]||1),0),[col]);
+  const us=useMemo(()=>new Set(col.map(e=>e.tcgCard?.set?.id).filter(Boolean)).size,[col]);
+  const up=useMemo(()=>new Set(col.map(e=>e.tcgCard?.name||e.aiName).filter(Boolean)).size,[col]);
+  const fcol=useMemo(()=>{
+    const q=cfilt.toLowerCase();
+    return col.filter(e=>!q||(e.tcgCard?.name||e.aiName||"").toLowerCase().includes(q)||(e.tcgCard?.set?.name||"").toLowerCase().includes(q))
+      .sort((a,b)=>{if(csort==="newest")return b.addedAt-a.addedAt;if(csort==="oldest")return a.addedAt-b.addedAt;if(csort==="name")return(a.tcgCard?.name||a.aiName||"").localeCompare(b.tcgCard?.name||b.aiName||"");if(csort==="value")return(cardVal(b.tcgCard)*(COND_MULT[b.condition]||1))-(cardVal(a.tcgCard)*(COND_MULT[a.condition]||1));return 0;});
+  },[col,cfilt,csort]);
+  const top5=useMemo(()=>col.filter(e=>cardVal(e.tcgCard)>0).sort((a,b)=>cardVal(b.tcgCard)-cardVal(a.tcgCard)).slice(0,5),[col]);
+
+  const mut=useCallback(u=>{setCol(u);saveCol(u);},[]);
+  const pf=useCallback(async file=>{
+    if(!file||!file.type.startsWith("image/"))return;
+    setScanErr(null);setScanAI(null);setMtchs([]);setSel(null);setFlash(false);setOvCond(null);
+    const rd=new FileReader();
+    rd.onload=async e=>{
+      setScanImg(e.target.result);setScanLoad(true);setTab("scan");
+      try{const b64=e.target.result.split(",")[1];const ai=await aiScan(b64);setScanAI(ai);if(ai.name){const m=await tcgSearch(ai.name);setMtchs(m);if(m.length)setSel(m[0]);}}
+      catch(err){setScanErr(err.message);}finally{setScanLoad(false);}
+    };
+    rd.readAsDataURL(file);
+  },[]);
+  const addC=useCallback(()=>{const cond=ovCond||scanAI?.condition||"Near Mint";mut([{id:uid(),addedAt:Date.now(),scanImg,aiName:scanAI?.name,condition:cond,tcgCard:sel||null},...col]);setFlash(true);setTimeout(()=>setFlash(false),2200);},[scanImg,scanAI,sel,ovCond,col,mut]);
+  const remE=useCallback(id=>{mut(col.filter(e=>e.id!==id));setViewE(null);setDelC(false);},[col,mut]);
+  const updC=useCallback((id,c)=>{mut(col.map(e=>e.id===id?{...e,condition:c}:e));setViewE(p=>p?.id===id?{...p,condition:c}:p);},[col,mut]);
+  const inC=useCallback(id=>col.some(e=>e.tcgCard?.id===id),[col]);
+  const addS=useCallback(card=>{mut([{id:uid(),addedAt:Date.now(),scanImg:null,aiName:card.name,condition:"Near Mint",tcgCard:card},...col]);},[col,mut]);
+  const doS=useCallback(async()=>{if(!sq.trim())return;setSload(true);setSdone(false);setSres([]);const r=await tcgSearch(sq);setSres(r);setSload(false);setSdone(true);},[sq]);
+  const rs=()=>{setScanImg(null);setScanAI(null);setMtchs([]);setSel(null);setScanErr(null);setOvCond(null);};
+
+  const nav=[{id:"home",l:"Home",ic:I.home},{id:"trends",l:"Trends",ic:I.trend},{id:"scan",l:"Scan",ic:I.cam,c:true},{id:"search",l:"Search",ic:I.search},{id:"collection",l:"Cards",ic:I.grid}];
+
+  return(
+    <div style={{height:"100%",display:"flex",flexDirection:"column",background:"#000",fontFamily:"'Inter',sans-serif",color:"#fff",overflow:"hidden",position:"fixed",inset:0}}>
+      <div style={{flex:1,overflowY:"auto",overflowX:"hidden"}}>
+
+        {/* HOME */}
+        {tab==="home"&&(
+          <div style={{minHeight:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",padding:"56px 22px 28px"}}>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:11,color:"#444",letterSpacing:4,marginBottom:6,fontWeight:500}}>WELCOME TO</div>
+              <div style={{fontFamily:"'Rajdhani',sans-serif",fontSize:50,fontWeight:700,letterSpacing:4,lineHeight:1,color:"#fff",textTransform:"uppercase"}}>PokéCollectr</div>
+              <div style={{fontSize:10,letterSpacing:6,color:"#4ecca3",marginTop:8,fontWeight:600}}>COLLECT · TRACK · PROFIT</div>
+            </div>
+            {col.length===0
+              ?<div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:600,marginBottom:8}}>Start building your Collection!</div><div style={{fontSize:13,color:"#555",lineHeight:1.7}}>Tap the camera below to scan<br/>your first card</div></div>
+              :<div style={{width:"100%",maxWidth:360}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                  {[["Total Cards",col.length],["Est. Value",`$${tv.toFixed(2)}`],["Unique Sets",us],["Pokémon",up]].map(([l,v])=>(
+                    <div key={l} style={{background:"#0e0e0e",borderRadius:14,padding:"14px 12px",border:"1px solid #1a1a1a"}}>
+                      <div className="ts" style={{fontFamily:"'Rajdhani',sans-serif",fontSize:24,fontWeight:700}}>{v}</div>
+                      <div style={{color:"#555",fontSize:12,marginTop:2}}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+                {top5.length>0&&<div><div style={{color:"#333",fontSize:10,letterSpacing:2,marginBottom:8}}>TOP CARDS</div><div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4}}>{top5.map(e=>(<div key={e.id} className="tap" onClick={()=>{setViewE(e);setDelC(false);}} style={{flexShrink:0,width:66}}>{e.tcgCard?.images?.small?<img src={e.tcgCard.images.small} style={{width:"100%",borderRadius:8,display:"block"}} alt=""/>:<div style={{width:66,height:90,background:"#1a1a1a",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🃏</div>}<div style={{color:"#4ecca3",fontSize:10,textAlign:"center",marginTop:2}}>${(cardVal(e.tcgCard)*(COND_MULT[e.condition]||1)).toFixed(0)}</div></div>))}</div></div>}
+              </div>
+            }
+            <div style={{textAlign:"center"}}>
+              <div className="cam-pulse tap" onClick={()=>cRef.current?.click()} style={{width:68,height:68,borderRadius:"50%",background:"#111",border:"2px solid #2a2a2a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",margin:"0 auto 12px",color:"#4ecca3"}}>{I.cam}</div>
+              <div style={{fontSize:12,color:"#3a3a3a"}}>Tap to scan a card</div>
+            </div>
+            <button id="pwa-btn" onClick={()=>window.triggerInstall&&window.triggerInstall()} style={{display:"none",background:"#4ecca3",color:"#000",border:"none",borderRadius:30,padding:"10px 24px",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}}>⬇ INSTALL APP</button>
+          </div>
+        )}
+
+        {/* TRENDS */}
+        {tab==="trends"&&<TrendsTab collection={col} onTap={c=>setPrev(c)} />}
+
+        {/* SCAN */}
+        {tab==="scan"&&(
+          <div style={{padding:"22px 18px 16px"}} className="fade-up">
+            <div style={{fontFamily:"'Rajdhani',sans-serif",fontSize:26,fontWeight:700,letterSpacing:2,marginBottom:3}}>SCAN CARD</div>
+            <div style={{color:"#444",fontSize:12,marginBottom:16}}>AI identifies your card and fetches live prices</div>
+            <div onClick={()=>fRef.current?.click()} style={{background:"#080808",border:"2px dashed #1e1e1e",borderRadius:16,minHeight:170,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:8,marginBottom:12,cursor:"pointer",overflow:"hidden"}}>
+              {scanImg?<img src={scanImg} alt="card" style={{maxHeight:250,maxWidth:"100%",objectFit:"contain"}}/>:<><div style={{color:"#2a2a2a",fontSize:36}}>🃏</div><div style={{color:"#3a3a3a",fontSize:12}}>Tap to choose photo</div></>}
+            </div>
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <button onClick={()=>fRef.current?.click()} style={{flex:1,background:"#0e0e0e",border:"1px solid #1e1e1e",borderRadius:12,padding:"11px 0",color:"#fff",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>📁 Gallery</button>
+              <button onClick={()=>cRef.current?.click()} style={{flex:1,background:"#4ecca3",border:"none",borderRadius:12,padding:"11px 0",color:"#000",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>📷 Camera</button>
+              {scanImg&&<button onClick={rs} style={{background:"#110000",border:"1px solid #2a0000",borderRadius:12,padding:"11px 13px",color:"#f87171",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>✕</button>}
+            </div>
+            {scanLoad&&<div style={{background:"#080808",borderRadius:16,padding:28,textAlign:"center",marginBottom:12}}><Spin/><div style={{color:"#4ecca3",fontSize:13,marginTop:14,fontWeight:500}}>Scanning with AI…</div><div style={{color:"#444",fontSize:11,marginTop:3}}>Identifying + fetching prices</div></div>}
+            {scanErr&&<div style={{background:"#110000",border:"1px solid #2a0000",borderRadius:12,padding:12,color:"#f87171",fontSize:12,marginBottom:12}}>⚠ {scanErr}</div>}
+            {scanAI&&!scanLoad&&(
+              <div style={{background:"#080808",borderRadius:16,padding:16,marginBottom:12,border:"1px solid #1a1a1a"}} className="fade-up">
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div><div style={{fontFamily:"'Rajdhani',sans-serif",fontSize:22,fontWeight:700,letterSpacing:1}}>{scanAI.name||"Unknown"}</div>{scanAI.set&&<div style={{color:"#555",fontSize:12}}>{scanAI.set}{scanAI.number?` · ${scanAI.number}`:""}</div>}</div>
+                  <Tag label={scanAI.confidence||"?"} color={scanAI.confidence==="high"?"#4ecca3":scanAI.confidence==="medium"?"#fbbf24":"#f87171"}/>
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>{scanAI.rarity&&<Tag label={scanAI.rarity} color={rc(scanAI.rarity)}/>}{scanAI.type&&<Tag label={scanAI.type} color="#fb923c"/>}{scanAI.hp&&<Tag label={`HP ${scanAI.hp}`} color="#f472b6"/>}</div>
+                <div style={{color:"#444",fontSize:10,letterSpacing:1,marginBottom:6}}>CONDITION</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{CONDITIONS.map(c=>{const a=(ovCond||scanAI.condition)===c;return<button key={c} onClick={()=>setOvCond(c)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${a?"#4ecca3":"#1e1e1e"}`,background:a?"#4ecca322":"transparent",color:a?"#4ecca3":"#555",fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>{c}</button>;})}</div>
+              </div>
+            )}
+            {mtchs.length>0&&!scanLoad&&(
+              <div style={{background:"#080808",borderRadius:16,padding:16,border:"1px solid #1a1a1a",marginBottom:12}} className="fade-up">
+                <div style={{color:"#333",fontSize:10,letterSpacing:2,marginBottom:10}}>SELECT CARD</div>
+                <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8,marginBottom:12}}>{mtchs.map(m=>(<div key={m.id} className="tap" onClick={()=>setSel(m)} style={{minWidth:72,flexShrink:0,borderRadius:10,overflow:"hidden",border:`2px solid ${sel?.id===m.id?"#4ecca3":"#1a1a1a"}`,transition:"border-color 0.15s"}}><img src={m.images?.small} alt={m.name} style={{width:"100%",display:"block"}}/><div style={{padding:"2px 4px",fontSize:8,color:"#444",lineHeight:1.3,background:"#080808"}}>{m.set?.name}</div></div>))}</div>
+                {sel&&(
+                  <div className="fade-up">
+                    <div style={{display:"flex",gap:10,marginBottom:14}}><img src={sel.images?.large||sel.images?.small} alt="" style={{width:80,borderRadius:8,flexShrink:0}}/><div><div style={{fontFamily:"'Rajdhani',sans-serif",fontSize:16,fontWeight:700,letterSpacing:1}}>{sel.name}</div><div style={{color:"#555",fontSize:11,marginBottom:4}}>{sel.set?.name} · #{sel.number}</div>{sel.rarity&&<Tag label={sel.rarity} color={rc(sel.rarity)}/>}<div style={{marginTop:6,fontSize:11,color:"#444"}}><div>Artist: {sel.artist||"—"}</div><div>Released: {sel.set?.releaseDate||"—"}</div></div></div></div>
+                    {sel.tcgplayer?.prices&&<div style={{marginBottom:12}}><div style={{color:"#333",fontSize:10,letterSpacing:2,marginBottom:3}}>TCGPLAYER (USD)</div>{[["Normal",sel.tcgplayer.prices.normal],["Holofoil",sel.tcgplayer.prices.holofoil],["Reverse Holo",sel.tcgplayer.prices.reverseHolofoil],["1st Ed.",sel.tcgplayer.prices["1stEditionHolofoil"]]].map(([l,p])=><PRow key={l} label={l} p={p}/>)}</div>}
+                    {sel.cardmarket?.prices&&<div style={{marginBottom:10}}><div style={{color:"#333",fontSize:10,letterSpacing:2,marginBottom:3}}>CARDMARKET (EUR)</div><div style={{display:"flex",gap:14,fontSize:12}}><span style={{color:"#4ecca3"}}>Trend {fmtEUR(sel.cardmarket.prices.trendPrice)}</span><span style={{color:"#444"}}>Avg30 {fmtEUR(sel.cardmarket.prices.avg30)}</span></div></div>}
+                    <div style={{background:"#050505",borderRadius:10,padding:12,marginBottom:14,border:"1px solid #1a1a1a"}}><div style={{color:"#4ecca3",fontSize:10,letterSpacing:2,fontWeight:600,marginBottom:6}}>TRADE INFO</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px 14px",fontSize:11}}>{[["Series",sel.set?.series],["Standard",sel.legalities?.standard],["Expanded",sel.legalities?.expanded],["HP",sel.hp],["Retreat",sel.retreatCost?.length],["Total",sel.set?.total]].map(([k,v])=>(<div key={k}><span style={{color:"#333"}}>{k}: </span><span style={{color:"#aaa"}}>{v||"—"}</span></div>))}</div>{sel.tcgplayer?.url&&<a href={sel.tcgplayer.url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",marginTop:8,color:"#4ecca3",fontSize:11}}>Buy on TCGPlayer →</a>}</div>
+                    <button onClick={addC} style={{width:"100%",padding:13,border:"none",borderRadius:14,background:flash?"#0d2a1e":"#4ecca3",color:flash?"#4ecca3":"#000",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer",transition:"all 0.3s",letterSpacing:1}}>{flash?"✅ ADDED TO COLLECTION":"+ ADD TO COLLECTION"}</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SEARCH */}
+        {tab==="search"&&(
+          <div style={{padding:"22px 18px 16px"}} className="fade-up">
+            <div style={{fontFamily:"'Rajdhani',sans-serif",fontSize:26,fontWeight:700,letterSpacing:2,marginBottom:14}}>SEARCH</div>
+            <div style={{display:"flex",gap:8,marginBottom:18}}>
+              <input style={{flex:1,background:"#0e0e0e",border:"1px solid #1e1e1e",borderRadius:12,padding:"12px 14px",color:"#fff",fontSize:14,fontFamily:"inherit"}} placeholder="Charizard, Pikachu…" value={sq} onChange={e=>setSq(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doS()}/>
+              <button onClick={doS} style={{background:"#4ecca3",border:"none",borderRadius:12,padding:"12px 16px",color:"#000",fontFamily:"inherit",fontSize:13,fontWeight:700,cursor:"pointer"}}>Go</button>
+            </div>
+            {sload&&<div style={{textAlign:"center",padding:36}}><Spin/><div style={{color:"#4ecca3",fontSize:12,marginTop:12}}>Searching…</div></div>}
+            {sdone&&sres.length===0&&!sload&&<div style={{textAlign:"center",color:"#444",padding:36}}>No results for "{sq}"</div>}
+            {sres.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{sres.map(card=>{const v=cardVal(card);const owned=inC(card.id);return(<div key={card.id} className="tap" onClick={()=>setPrev(card)} style={{background:"#080808",border:`1px solid ${owned?"#4ecca333":"#1a1a1a"}`,borderRadius:12,overflow:"hidden"}}><img src={card.images?.small} alt={card.name} style={{width:"100%",display:"block"}}/><div style={{padding:"5px 7px"}}><div style={{fontSize:11,fontWeight:500,color:"#ccc",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{card.name}</div><div style={{display:"flex",justifyContent:"space-between",marginTop:1}}><span style={{fontSize:11,color:v?"#4ecca3":"#333"}}>{v?`$${v.toFixed(2)}`:"—"}</span>{owned&&<span style={{fontSize:9,color:"#4ecca3"}}>✓</span>}</div></div></div>);})}</div>}
+          </div>
+        )}
+
+        {/* COLLECTION */}
+        {tab==="collection"&&(
+          <div style={{padding:"22px 18px 16px"}} className="fade-up">
+            <div style={{fontFamily:"'Rajdhani',sans-serif",fontSize:26,fontWeight:700,letterSpacing:2,marginBottom:14}}>MY COLLECTION</div>
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
+              <input style={{flex:1,background:"#0e0e0e",border:"1px solid #1e1e1e",borderRadius:12,padding:"10px 12px",color:"#fff",fontSize:13,fontFamily:"inherit"}} placeholder="Filter…" value={cfilt} onChange={e=>setCfilt(e.target.value)}/>
+              <select style={{background:"#0e0e0e",border:"1px solid #1e1e1e",borderRadius:12,padding:"10px 8px",color:"#fff",fontSize:12,fontFamily:"inherit"}} value={csort} onChange={e=>setCsort(e.target.value)}><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="name">Name</option><option value="value">Value</option></select>
+            </div>
+            {fcol.length===0?<div style={{textAlign:"center",padding:56,color:"#444"}}><div style={{fontSize:36,marginBottom:10}}>📭</div><div>{col.length===0?"No cards yet — scan one!":"No cards match"}</div></div>
+            :<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>{fcol.map(e=>{const img=e.tcgCard?.images?.small||e.scanImg;const name=e.tcgCard?.name||e.aiName||"Unknown";const v=cardVal(e.tcgCard)*(COND_MULT[e.condition]||1);return(<div key={e.id} className="tap" onClick={()=>{setViewE(e);setDelC(false);}} style={{background:"#080808",border:"1px solid #1a1a1a",borderRadius:12,overflow:"hidden"}}>{img?<img src={img} alt={name} style={{width:"100%",display:"block",aspectRatio:"0.72",objectFit:"cover"}}/>:<div style={{aspectRatio:"0.72",background:"#111",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>🃏</div>}<div style={{padding:"5px 7px"}}><div style={{fontSize:11,fontWeight:500,color:"#bbb",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div><div style={{display:"flex",justifyContent:"space-between",marginTop:1}}><span style={{fontSize:11,color:v?"#4ecca3":"#333"}}>{v?`$${v.toFixed(2)}`:"—"}</span>{e.condition&&<span style={{fontSize:9,color:"#333"}}>{e.condition.split(" ").map(w=>w[0]).join("")}</span>}</div></div></div>);})}</div>}
+          </div>
+        )}
+      </div>
+
+      {/* BOTTOM NAV */}
+      <div className="bnav">
+        {nav.map(item=>{
+          const a=tab===item.id;
+          if(item.c)return(<div key={item.id} style={{flex:1,display:"flex",justifyContent:"center"}}><div onClick={()=>{setTab("scan");cRef.current?.click();}} style={{width:52,height:52,borderRadius:"50%",background:"#4ecca3",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#000",boxShadow:"0 0 16px #4ecca330",marginTop:-14}}>{I.cam}</div></div>);
+          return(<div key={item.id} className="nav-i" onClick={()=>setTab(item.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"3px 0",color:a?"#4ecca3":"#3a3a3a"}}>{item.ic}<span style={{fontSize:10,fontWeight:a?600:400,letterSpacing:0.3}}>{item.l}</span></div>);
+        })}
+      </div>
+
+      <input ref={fRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>pf(e.target.files[0])}/>
+      <input ref={cRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>pf(e.target.files[0])}/>
+
+      {/* COLLECTION CARD SHEET */}
+      {viewE&&<Sheet title={viewE.tcgCard?.name||viewE.aiName||"Card Detail"} onClose={()=>{setViewE(null);setDelC(false);}}>
+        <div style={{display:"flex",gap:12,marginBottom:18}}>{(viewE.tcgCard?.images?.large||viewE.scanImg)&&<img src={viewE.tcgCard?.images?.large||viewE.scanImg} alt="" style={{width:110,borderRadius:10,flexShrink:0,objectFit:"contain",alignSelf:"flex-start"}}/>}<div style={{fontSize:12,color:"#bbb"}}>{viewE.tcgCard&&<><div style={{color:"#444",fontSize:10}}>SET</div><div style={{marginBottom:6}}>{viewE.tcgCard.set?.name}</div><div style={{color:"#444",fontSize:10}}>NUMBER</div><div style={{marginBottom:6}}>{viewE.tcgCard.number}</div><div style={{color:"#444",fontSize:10}}>RARITY</div><div style={{marginBottom:6}}><Tag label={viewE.tcgCard.rarity||"—"} color={rc(viewE.tcgCard.rarity)}/></div><div style={{color:"#444",fontSize:10}}>ARTIST</div><div>{viewE.tcgCard.artist||"—"}</div></>}<div style={{color:"#2a2a2a",fontSize:10,marginTop:6}}>Added {new Date(viewE.addedAt).toLocaleDateString()}</div></div></div>
+        <div style={{color:"#333",fontSize:10,letterSpacing:2,marginBottom:6}}>CONDITION</div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14}}>{CONDITIONS.map(c=>{const a=viewE.condition===c;return<button key={c} onClick={()=>updC(viewE.id,c)} style={{padding:"4px 10px",borderRadius:20,border:`1px solid ${a?"#4ecca3":"#1e1e1e"}`,background:a?"#4ecca322":"transparent",color:a?"#4ecca3":"#555",fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>{c}</button>;})}</div>
+        {viewE.tcgCard?.tcgplayer?.prices&&<><div style={{color:"#333",fontSize:10,letterSpacing:2,marginBottom:3}}>PRICES</div>{[["Normal",viewE.tcgCard.tcgplayer.prices.normal],["Holofoil",viewE.tcgCard.tcgplayer.prices.holofoil],["Reverse Holo",viewE.tcgCard.tcgplayer.prices.reverseHolofoil]].map(([l,p])=><PRow key={l} label={l} p={p}/>)}<div style={{padding:"10px 0",display:"flex",justifyContent:"space-between",borderBottom:"1px solid #111",marginBottom:14}}><span style={{color:"#555",fontSize:12}}>Value at {viewE.condition}</span><span style={{color:"#4ecca3",fontWeight:700,fontSize:15}}>${(cardVal(viewE.tcgCard)*(COND_MULT[viewE.condition]||1)).toFixed(2)}</span></div></>}
+        {viewE.tcgCard?.tcgplayer?.url&&<a href={viewE.tcgCard.tcgplayer.url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",color:"#4ecca3",fontSize:12,marginBottom:14}}>View on TCGPlayer →</a>}
+        {delC?<div style={{display:"flex",gap:8}}><button onClick={()=>remE(viewE.id)} style={{flex:1,padding:12,border:"none",borderRadius:12,background:"#2a0000",color:"#f87171",fontFamily:"inherit",fontSize:13,fontWeight:600,cursor:"pointer"}}>Confirm Remove</button><button onClick={()=>setDelC(false)} style={{flex:1,padding:12,border:"1px solid #1e1e1e",borderRadius:12,background:"transparent",color:"#555",fontFamily:"inherit",fontSize:13,cursor:"pointer"}}>Cancel</button></div>
+        :<button onClick={()=>setDelC(true)} style={{width:"100%",padding:12,border:"1px solid #2a0000",borderRadius:12,background:"transparent",color:"#f87171",fontFamily:"inherit",fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>{I.trash} Remove from Collection</button>}
+      </Sheet>}
+
+      {/* PREVIEW SHEET (search + trends) */}
+      {prev&&<Sheet title={prev.name} onClose={()=>setPrev(null)}>
+        <div style={{display:"flex",gap:12,marginBottom:14}}><img src={prev.images?.large||prev.images?.small} alt="" style={{width:110,borderRadius:10,flexShrink:0}}/><div style={{fontSize:12,color:"#bbb"}}><div style={{color:"#444",fontSize:10}}>SET</div><div style={{marginBottom:5}}>{prev.set?.name}</div><div style={{color:"#444",fontSize:10}}>NUMBER</div><div style={{marginBottom:5}}>{prev.number}</div><div style={{color:"#444",fontSize:10}}>RARITY</div><div style={{marginBottom:5}}><Tag label={prev.rarity||"—"} color={rc(prev.rarity)}/></div><div style={{color:"#444",fontSize:10}}>ARTIST</div><div>{prev.artist||"—"}</div></div></div>
+        <div style={{color:"#333",fontSize:10,letterSpacing:2,marginBottom:3}}>PRICES</div>
+        {[["Normal",prev.tcgplayer?.prices?.normal],["Holofoil",prev.tcgplayer?.prices?.holofoil],["Reverse Holo",prev.tcgplayer?.prices?.reverseHolofoil]].map(([l,p])=><PRow key={l} label={l} p={p}/>)}
+        {prev.cardmarket?.prices&&<div style={{padding:"8px 0",borderBottom:"1px solid #111",marginBottom:6,fontSize:12}}><span style={{color:"#4ecca3"}}>Trend {fmtEUR(prev.cardmarket.prices.trendPrice)}</span><span style={{color:"#444"}}> · Avg30 {fmtEUR(prev.cardmarket.prices.avg30)}</span></div>}
+        {prev.tcgplayer?.url&&<a href={prev.tcgplayer.url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",color:"#4ecca3",fontSize:12,margin:"6px 0 14px"}}>View on TCGPlayer →</a>}
+        <button onClick={()=>{if(!inC(prev.id))addS(prev);}} style={{width:"100%",padding:13,border:"none",borderRadius:14,background:inC(prev.id)?"#0d2a1e":"#4ecca3",color:inC(prev.id)?"#4ecca3":"#000",fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer",letterSpacing:1}}>
+          {inC(prev.id)?"✅ IN COLLECTION":"+ ADD TO COLLECTION"}
+        </button>
+      </Sheet>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

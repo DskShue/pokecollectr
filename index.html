@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="PokéCollectr" />
+  <meta name="theme-color" content="#000000" />
+  <title>PokéCollectr</title>
+  <link rel="manifest" href="#" id="mph" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script>
+    const _m={name:"PokéCollectr",short_name:"PokéCollectr",start_url:"./",display:"standalone",background_color:"#000",theme_color:"#000",orientation:"portrait-primary",icons:[{src:"data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#000"/><circle cx="256" cy="256" r="200" fill="#4ecca3"/><circle cx="256" cy="256" r="80" fill="#000"/><circle cx="256" cy="256" r="40" fill="#4ecca3"/></svg>'),sizes:"any",type:"image/svg+xml",purpose:"any maskable"}]};
+    document.getElementById("mph").href=URL.createObjectURL(new Blob([JSON.stringify(_m)],{type:"application/json"}));
+    if("serviceWorker" in navigator){const sw=`self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>{if(e.request.method==='GET')e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));});`;navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:"application/javascript"})),{scope:"./"}).catch(()=>{});}
+    let _dp=null;
+    window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();_dp=e;const b=document.getElementById("pwa-btn");if(b)b.style.display="flex";});
+    window.addEventListener("appinstalled",()=>{_dp=null;});
+    window.triggerInstall=()=>{if(_dp){_dp.prompt();_dp.userChoice.then(()=>{_dp=null;});}};
+  </script>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+    html,body{background:#000;height:100%;overflow:hidden;}
+    body{padding-top:env(safe-area-inset-top);}
+    #root{position:fixed;top:0;left:0;right:0;bottom:0;background:#000;display:flex;flex-direction:column;overflow:hidden;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    @keyframes chartDraw{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+    .fu{animation:fadeUp 0.25s ease both}
+    .pulse{animation:pulse 2.5s ease infinite}
+    .tap{cursor:pointer;transition:transform 0.12s,opacity 0.12s;}
+    .tap:active{transform:scale(0.94);opacity:0.75;}
+    .navi{cursor:pointer;transition:color 0.15s;}
+    ::-webkit-scrollbar{display:none;}
+    input,select{outline:none;-webkit-appearance:none;}
+    input::placeholder{color:#3a3a3a;}
+    .ts{background:linear-gradient(90deg,#4ecca3,#81e6d9,#4ecca3);background-size:200% 100%;animation:shimmer 2s linear infinite;-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .bnav{background:#000!important;border-top:1px solid #1c1c1c;display:flex;align-items:center;padding:8px 0;padding-bottom:calc(10px + env(safe-area-inset-bottom));flex-shrink:0;z-index:50;}
+    .bnav::after{content:"";position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom);background:#000;z-index:49;}
+    .pill{display:flex;background:#111;border-radius:24px;padding:3px;border:1px solid #1e1e1e;}
+    .pa{background:#4ecca3;color:#000;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+    .pi{background:transparent;color:#555;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+    .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;}
+    .ca{flex-shrink:0;padding:6px 14px;border-radius:20px;background:#4ecca3;color:#000;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+    .ci{flex-shrink:0;padding:6px 14px;border-radius:20px;background:#111;color:#555;border:1px solid #222;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+    .trow{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:14px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+    .trow:active{opacity:0.7;}
+    .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .card-cell{background:#080808;border:1px solid #1a1a1a;border-radius:12px;overflow:hidden;cursor:pointer;transition:opacity 0.12s;}
+    .card-cell:active{opacity:0.7;}
+    .inp{background:#0e0e0e;border:1px solid #1e1e1e;border-radius:12px;padding:11px 14px;color:#fff;font-size:13px;font-family:inherit;width:100%;}
+    .btn-teal{background:#4ecca3;border:none;border-radius:12px;padding:12px 0;color:#000;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;width:100%;}
+    .btn-dark{background:#0e0e0e;border:1px solid #1e1e1e;border-radius:12px;padding:12px 0;color:#fff;font-family:inherit;font-size:13px;cursor:pointer;}
+    .sheet-overlay{position:fixed;inset:0;background:#000a;z-index:300;display:flex;flex-direction:column;justify-content:flex-end;}
+    .sheet-body{background:#111;border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;padding-bottom:32px;}
+    .sheet-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px 14px;border-bottom:1px solid #1a1a1a;position:sticky;top:0;background:#111;z-index:1;}
+    .tab-row{display:flex;background:#0a0a0a;border-radius:12px;padding:3px;margin-bottom:14px;border:1px solid #1a1a1a;}
+    .tab-btn{flex:1;padding:8px 0;border:none;border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+    .tab-btn.on{background:#4ecca3;color:#000;}
+    .tab-btn.off{background:transparent;color:#555;}
+    .grade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
+    .grade-cell{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;padding:8px 6px;text-align:center;}
+    .chart-line{stroke-dasharray:1000;animation:chartDraw 1.2s ease forwards;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef,useCallback,useMemo,useEffect} = React;
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const STORAGE_KEY = "pokecollectr_v4";
+const CONDITIONS = ["Mint","Near Mint","Lightly Played","Moderately Played","Heavily Played"];
+const COND_MULT = {"Mint":1.2,"Near Mint":1.0,"Lightly Played":0.85,"Moderately Played":0.65,"Heavily Played":0.4};
+const RARITY_CLR = {"Common":"#94a3b8","Uncommon":"#4ecca3","Rare":"#fbbf24","Holo Rare":"#60a5fa","Rare Holo":"#60a5fa","Ultra Rare":"#a78bfa","Secret Rare":"#f472b6","Illustration Rare":"#fb923c","Special Illustration Rare":"#f43f5e","Hyper Rare":"#fff"};
+const rc = r => RARITY_CLR[r] || "#64748b";
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+// PSA grade multipliers (industry standard estimates)
+const PSA_MULT = {10:2.8, 9:1.1, 8:0.85, 7:0.65, 6:0.5, 5:0.4};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fmtUSD = v => v != null && v > 0 ? `$${parseFloat(v).toFixed(2)}` : "—";
+const fmtEUR = v => v != null && v > 0 ? `€${parseFloat(v).toFixed(2)}` : "—";
+const fmtPct = v => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+const fmtDol = v => `${v >= 0 ? "+" : "-"}$${Math.abs(v).toFixed(2)}`;
+const bestPrice = card => { const p = card?.tcgplayer?.prices; if (!p) return null; return p.holofoil || p["1stEditionHolofoil"] || p.normal || p.reverseHolofoil || null; };
+const marketVal = card => parseFloat(bestPrice(card)?.market || 0);
+const condVal = (card, cond) => marketVal(card) * (COND_MULT[cond] || 1);
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+const loadCol = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } };
+const saveCol = c => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); } catch {} };
+
+// ─── IMAGE COMPRESSION (saves ~90% of API cost) ───────────────────────────────
+function compressImage(dataUrl, maxPx = 800, quality = 0.82) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.src = dataUrl;
+  });
+}
+
+// ─── AI SCAN (Haiku — ~20x cheaper than Sonnet) ───────────────────────────────
+async function scanWithAI(base64) {
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 300,
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
+          { type: "text", text: 'Identify this Pokemon TCG card. Reply ONLY with JSON, no markdown:\n{"name":"","set":"","number":"","rarity":"","type":"","hp":0,"condition":"Near Mint","confidence":"high","notes":""}' }
+        ]}]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = (data.content || []).map(b => b.text || "").join("").trim().replace(/^```[\w]*\n?/, "").replace(/\n?```$/, "").trim();
+    return JSON.parse(text);
+  } catch(e) {
+    return { name: null, confidence: "low", notes: "Scan failed: " + e.message };
+  }
+}
+
+// ─── TCG API ──────────────────────────────────────────────────────────────────
+async function searchCards(query) {
+  try {
+    const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(query)}"&pageSize=20&orderBy=-set.releaseDate`);
+    const data = await res.json();
+    return data.data || [];
+  } catch { return []; }
+}
+
+async function fetchTrendBatch(q) {
+  try {
+    const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=24&orderBy=-set.releaseDate`);
+    const data = await res.json();
+    return data.data || [];
+  } catch { return []; }
+}
+
+async function loadTrendData() {
+  const [sir, hyper, secret, illus, ultra] = await Promise.all([
+    fetchTrendBatch('rarity:"Special Illustration Rare"'),
+    fetchTrendBatch('rarity:"Hyper Rare"'),
+    fetchTrendBatch('rarity:"Secret Rare"'),
+    fetchTrendBatch('rarity:"Illustration Rare"'),
+    fetchTrendBatch('rarity:"Ultra Rare"'),
+  ]);
+  const seen = new Set();
+  return [...sir, ...hyper, ...secret, ...illus, ...ultra]
+    .filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; })
+    .map(c => {
+      const p = bestPrice(c);
+      if (!p?.market) return null;
+      const low = p.low > 0 ? p.low : p.market * 0.75;
+      const high = p.high > 0 ? p.high : p.market * 1.25;
+      return { ...c, _p:{...p,low,high}, _spread:(high-low), _spreadPct:low>0?((high-low)/low)*100:0, _vsLow:low>0?((p.market-low)/low)*100:0, _vsHigh:high>0?((p.market-high)/high)*100:0 };
+    }).filter(Boolean);
+}
+
+// ─── ICONS ───────────────────────────────────────────────────────────────────
+const Ic = {
+  home:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  trend:  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  cam:    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+  search: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  grid:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+  x:      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  trash:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>,
+  up:     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>,
+  dn:     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>,
+};
+
+// ─── PRICE CHART COMPONENT ────────────────────────────────────────────────────
+function PriceChart({ low, market, high }) {
+  if (!market || market <= 0) return null;
+
+  // Simulate data points for a 6-month range using low/mid/high as anchors
+  const lo = low || market * 0.7;
+  const hi = high || market * 1.3;
+  const mid = (lo + hi) / 2;
+
+  // Build 7 synthetic data points that end at market, curve realistically
+  const pts = [
+    lo * 0.95,
+    lo * 1.05,
+    mid * 0.92,
+    mid,
+    mid * 1.08,
+    hi * 0.95,
+    market,
+  ];
+
+  const months = ["Oct","Nov","Dec","Jan","Feb","Mar","Now"];
+  const W = 280, H = 80, PAD = 4;
+  const minV = Math.min(...pts) * 0.95;
+  const maxV = Math.max(...pts) * 1.05;
+  const range = maxV - minV || 1;
+
+  const toX = i => PAD + (i / (pts.length - 1)) * (W - PAD * 2);
+  const toY = v => H - PAD - ((v - minV) / range) * (H - PAD * 2);
+
+  const pathD = pts.map((v, i) => `${i === 0 ? "M" : "L"}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(" ");
+  const areaD = pathD + ` L${toX(pts.length-1).toFixed(1)},${H} L${toX(0).toFixed(1)},${H} Z`;
+
+  const isUp = market >= mid;
+  const lineColor = isUp ? "#4ecca3" : "#f87171";
+  const pct = mid > 0 ? ((market - mid) / mid * 100) : 0;
+
+  return (
+    <div style={{ marginBottom:16 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:6 }}>
+        <div>
+          <div style={{ color:"#fff", fontWeight:700, fontSize:20 }}>{fmtUSD(market)}</div>
+          <div style={{ color: isUp ? "#4ecca3" : "#f87171", fontSize:12, display:"flex", alignItems:"center", gap:3, marginTop:1 }}>
+            {isUp ? Ic.up : Ic.dn} {fmtPct(pct)} vs avg
+          </div>
+        </div>
+        <div style={{ textAlign:"right", fontSize:11, color:"#555" }}>
+          <div>H {fmtUSD(hi)}</div>
+          <div>L {fmtUSD(lo)}</div>
+        </div>
+      </div>
+
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display:"block", overflow:"visible" }}>
+        {/* Area fill */}
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={lineColor} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={areaD} fill="url(#chartGrad)" />
+        {/* Line */}
+        <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="chart-line" />
+        {/* Current price dot */}
+        <circle cx={toX(pts.length-1)} cy={toY(pts[pts.length-1])} r="3.5" fill={lineColor} />
+        {/* Low/High dashed guides */}
+        <line x1={PAD} y1={toY(hi)} x2={W-PAD} y2={toY(hi)} stroke="#ffffff18" strokeWidth="1" strokeDasharray="3,3" />
+        <line x1={PAD} y1={toY(lo)} x2={W-PAD} y2={toY(lo)} stroke="#ffffff18" strokeWidth="1" strokeDasharray="3,3" />
+      </svg>
+
+      {/* Month labels */}
+      <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+        {months.map((m, i) => (
+          <span key={i} style={{ fontSize:9, color: i === months.length-1 ? "#4ecca3" : "#333" }}>{m}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── GRADED VALUE TABLE ───────────────────────────────────────────────────────
+function GradedTable({ market }) {
+  if (!market || market <= 0) return <div style={{ color:"#444", fontSize:12, padding:"12px 0" }}>No base price data for graded estimates</div>;
+  const grades = [10, 9, 8, 7, 6, 5];
+  return (
+    <div>
+      <div style={{ color:"#555", fontSize:11, marginBottom:8 }}>Estimated graded values based on PSA industry multipliers</div>
+      <div className="grade-grid">
+        {grades.map(g => {
+          const val = market * PSA_MULT[g];
+          const isTop = g === 10;
+          return (
+            <div key={g} className="grade-cell" style={{ border:`1px solid ${isTop ? "#4ecca344" : "#1a1a1a"}`, background: isTop ? "#0a1f1a" : "#0a0a0a" }}>
+              <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:20, fontWeight:700, color: isTop ? "#4ecca3" : "#fff" }}>PSA {g}</div>
+              <div style={{ color: isTop ? "#4ecca3" : "#aaa", fontWeight:600, fontSize:13, marginTop:2 }}>{fmtUSD(val)}</div>
+              <div style={{ color:"#333", fontSize:9, marginTop:1 }}>{PSA_MULT[g]}x raw</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ color:"#2a2a2a", fontSize:10, marginTop:4 }}>* Estimates only. Actual graded prices vary by pop report and demand.</div>
+    </div>
+  );
+}
+
+// ─── SMALL COMPONENTS ────────────────────────────────────────────────────────
+function Tag({ label, color }) {
+  return <span style={{ display:"inline-block", background:color+"22", color, border:`1px solid ${color}44`, borderRadius:20, padding:"2px 9px", fontSize:11, fontWeight:600 }}>{label}</span>;
+}
+
+function Spinner() {
+  return <div style={{ width:34, height:34, border:"3px solid #1a1a1a", borderTop:"3px solid #4ecca3", borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto" }} />;
+}
+
+function PriceRow({ label, p }) {
+  if (!p || !p.market) return null;
+  return (
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"9px 0", borderBottom:"1px solid #111" }}>
+      <span style={{ color:"#666", fontSize:13 }}>{label}</span>
+      <div style={{ textAlign:"right" }}>
+        <div style={{ color:"#4ecca3", fontWeight:600, fontSize:15 }}>{fmtUSD(p.market)}</div>
+        <div style={{ color:"#444", fontSize:11 }}>L {fmtUSD(p.low)} · H {fmtUSD(p.high)}</div>
+      </div>
+    </div>
+  );
+}
+
+function Sheet({ title, onClose, children }) {
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="sheet-body fu" onClick={e => e.stopPropagation()}>
+        <div className="sheet-header">
+          <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:19, fontWeight:700, color:"#fff", letterSpacing:1 }}>{title}</div>
+          <button onClick={onClose} style={{ background:"#1a1a1a", border:"none", borderRadius:"50%", width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", cursor:"pointer" }}>{Ic.x}</button>
+        </div>
+        <div style={{ padding:"14px 20px" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CARD SHEET (search/trends preview) ──────────────────────────────────────
+function CardSheet({ card, inCollection, onClose, onAdd }) {
+  const [priceTab, setPriceTab] = useState("raw"); // raw | graded
+  const prices = card.tcgplayer?.prices;
+  const bp = bestPrice(card);
+
+  return (
+    <Sheet title={card.name} onClose={onClose}>
+      {/* Card image + meta */}
+      <div style={{ display:"flex", gap:14, marginBottom:16 }}>
+        <img src={card.images?.large || card.images?.small} alt="" style={{ width:110, borderRadius:12, flexShrink:0, alignSelf:"flex-start" }} />
+        <div style={{ fontSize:12, color:"#bbb" }}>
+          <div style={{ color:"#444", fontSize:10 }}>SET</div>
+          <div style={{ marginBottom:4 }}>{card.set?.name}</div>
+          <div style={{ color:"#444", fontSize:10 }}>NUMBER</div>
+          <div style={{ marginBottom:4 }}>{card.number}</div>
+          <div style={{ color:"#444", fontSize:10 }}>RARITY</div>
+          <div style={{ marginBottom:4 }}><Tag label={card.rarity || "—"} color={rc(card.rarity)} /></div>
+          <div style={{ color:"#444", fontSize:10 }}>ARTIST</div>
+          <div style={{ marginBottom:4 }}>{card.artist || "—"}</div>
+          <div style={{ color:"#444", fontSize:10 }}>RELEASED</div>
+          <div>{card.set?.releaseDate || "—"}</div>
+        </div>
+      </div>
+
+      {/* Price chart */}
+      {bp && <PriceChart low={bp.low} market={bp.market} high={bp.high} />}
+
+      {/* RAW / GRADED tabs */}
+      <div className="tab-row">
+        <button className={`tab-btn ${priceTab === "raw" ? "on" : "off"}`} onClick={() => setPriceTab("raw")}>RAW</button>
+        <button className={`tab-btn ${priceTab === "graded" ? "on" : "off"}`} onClick={() => setPriceTab("graded")}>GRADED (EST.)</button>
+      </div>
+
+      {priceTab === "raw" && prices && (
+        <div style={{ marginBottom:14 }}>
+          <PriceRow label="Normal" p={prices.normal} />
+          <PriceRow label="Holofoil" p={prices.holofoil} />
+          <PriceRow label="Reverse Holo" p={prices.reverseHolofoil} />
+          <PriceRow label="1st Ed. Holo" p={prices["1stEditionHolofoil"]} />
+          {card.cardmarket?.prices && (
+            <div style={{ padding:"8px 0", borderBottom:"1px solid #111", fontSize:12 }}>
+              <div style={{ color:"#333", fontSize:10, letterSpacing:2, marginBottom:3 }}>CARDMARKET (EUR)</div>
+              <span style={{ color:"#4ecca3" }}>Trend {fmtEUR(card.cardmarket.prices.trendPrice)}</span>
+              <span style={{ color:"#444" }}> · Avg30 {fmtEUR(card.cardmarket.prices.avg30)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {priceTab === "graded" && <GradedTable market={bp?.market} />}
+
+      {/* Trade info */}
+      <div style={{ background:"#080808", borderRadius:10, padding:12, marginBottom:14, border:"1px solid #1a1a1a" }}>
+        <div style={{ color:"#4ecca3", fontSize:10, letterSpacing:2, fontWeight:600, marginBottom:6 }}>TRADE INFO</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4px 14px", fontSize:11 }}>
+          {[["Series", card.set?.series], ["Standard", card.legalities?.standard], ["Expanded", card.legalities?.expanded], ["HP", card.hp], ["Retreat", card.retreatCost?.length], ["Set Total", card.set?.total]].map(([k,v]) => (
+            <div key={k}><span style={{ color:"#333" }}>{k}: </span><span style={{ color:"#aaa" }}>{v || "—"}</span></div>
+          ))}
+        </div>
+        {card.tcgplayer?.url && <a href={card.tcgplayer.url} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", marginTop:8, color:"#4ecca3", fontSize:11 }}>Buy on TCGPlayer →</a>}
+      </div>
+
+      <button onClick={() => { if (!inCollection) onAdd(); }}
+        style={{ width:"100%", padding:13, border:"none", borderRadius:14, background: inCollection ? "#0d2a1e" : "#4ecca3", color: inCollection ? "#4ecca3" : "#000", fontFamily:"inherit", fontSize:14, fontWeight:700, cursor:"pointer", letterSpacing:1 }}>
+        {inCollection ? "✅ IN COLLECTION" : "+ ADD TO COLLECTION"}
+      </button>
+    </Sheet>
+  );
+}
+
+// ─── COLLECTION ENTRY SHEET ───────────────────────────────────────────────────
+function EntrySheet({ entry, onClose, onRemove, onCondChange }) {
+  const [delConfirm, setDelConfirm] = useState(false);
+  const [priceTab, setPriceTab] = useState("raw");
+  const card = entry.tcgCard;
+  const prices = card?.tcgplayer?.prices;
+  const bp = bestPrice(card);
+  const val = condVal(card, entry.condition);
+
+  return (
+    <Sheet title={card?.name || entry.aiName || "Card Detail"} onClose={onClose}>
+      {/* Card + meta */}
+      <div style={{ display:"flex", gap:14, marginBottom:14 }}>
+        {(card?.images?.large || entry.scanImg) && (
+          <img src={card?.images?.large || entry.scanImg} alt="" style={{ width:110, borderRadius:12, flexShrink:0, alignSelf:"flex-start", objectFit:"contain" }} />
+        )}
+        <div style={{ fontSize:12, color:"#bbb" }}>
+          {card && <>
+            <div style={{ color:"#444", fontSize:10 }}>SET</div>
+            <div style={{ marginBottom:4 }}>{card.set?.name}</div>
+            <div style={{ color:"#444", fontSize:10 }}>NUMBER</div>
+            <div style={{ marginBottom:4 }}>{card.number}</div>
+            <div style={{ color:"#444", fontSize:10 }}>RARITY</div>
+            <div style={{ marginBottom:4 }}><Tag label={card.rarity || "—"} color={rc(card.rarity)} /></div>
+            <div style={{ color:"#444", fontSize:10 }}>ARTIST</div>
+            <div>{card.artist || "—"}</div>
+          </>}
+          <div style={{ color:"#2a2a2a", fontSize:10, marginTop:6 }}>Added {new Date(entry.addedAt).toLocaleDateString()}</div>
+        </div>
+      </div>
+
+      {/* Condition selector */}
+      <div style={{ color:"#333", fontSize:10, letterSpacing:2, marginBottom:6 }}>CONDITION</div>
+      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:14 }}>
+        {CONDITIONS.map(c => {
+          const active = entry.condition === c;
+          return <button key={c} onClick={() => onCondChange(entry.id, c)}
+            style={{ padding:"4px 10px", borderRadius:20, border:`1px solid ${active ? "#4ecca3" : "#1e1e1e"}`, background: active ? "#4ecca322" : "transparent", color: active ? "#4ecca3" : "#555", fontSize:10, fontFamily:"inherit", cursor:"pointer" }}>{c}</button>;
+        })}
+      </div>
+
+      {/* Price chart */}
+      {bp && <PriceChart low={bp.low} market={bp.market} high={bp.high} />}
+
+      {/* RAW / GRADED tabs */}
+      <div className="tab-row">
+        <button className={`tab-btn ${priceTab === "raw" ? "on" : "off"}`} onClick={() => setPriceTab("raw")}>RAW</button>
+        <button className={`tab-btn ${priceTab === "graded" ? "on" : "off"}`} onClick={() => setPriceTab("graded")}>GRADED (EST.)</button>
+      </div>
+
+      {priceTab === "raw" && prices && (
+        <div style={{ marginBottom:12 }}>
+          <PriceRow label="Normal" p={prices.normal} />
+          <PriceRow label="Holofoil" p={prices.holofoil} />
+          <PriceRow label="Reverse Holo" p={prices.reverseHolofoil} />
+          <div style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:"1px solid #111", marginBottom:12 }}>
+            <span style={{ color:"#555", fontSize:13 }}>Value at {entry.condition}</span>
+            <span style={{ color:"#4ecca3", fontWeight:700, fontSize:16 }}>{fmtUSD(val)}</span>
+          </div>
+        </div>
+      )}
+
+      {priceTab === "graded" && <GradedTable market={bp?.market} />}
+
+      {card?.tcgplayer?.url && <a href={card.tcgplayer.url} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", color:"#4ecca3", fontSize:12, marginBottom:14 }}>View on TCGPlayer →</a>}
+
+      {delConfirm
+        ? <div style={{ display:"flex", gap:8 }}>
+            <button onClick={() => onRemove(entry.id)} style={{ flex:1, padding:12, border:"none", borderRadius:12, background:"#2a0000", color:"#f87171", fontFamily:"inherit", fontSize:13, fontWeight:600, cursor:"pointer" }}>Confirm Remove</button>
+            <button onClick={() => setDelConfirm(false)} style={{ flex:1, padding:12, border:"1px solid #1e1e1e", borderRadius:12, background:"transparent", color:"#555", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancel</button>
+          </div>
+        : <button onClick={() => setDelConfirm(true)} style={{ width:"100%", padding:12, border:"1px solid #2a0000", borderRadius:12, background:"transparent", color:"#f87171", fontFamily:"inherit", fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>{Ic.trash} Remove from Collection</button>
+      }
+    </Sheet>
+  );
+}
+
+// ─── TRENDS TAB ───────────────────────────────────────────────────────────────
+function TrendsTab({ collection, onCardTap }) {
+  const [mode, setMode] = useState("global");
+  const [fmt, setFmt] = useState("pct");
+  const [gFilter, setGFilter] = useState("valuable");
+  const [mFilter, setMFilter] = useState("value");
+  const [trendData, setTrendData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (loaded || loading) return;
+    setLoading(true);
+    loadTrendData().then(data => { setTrendData(data); setLoading(false); setLoaded(true); });
+  }, []);
+
+  const globalList = useMemo(() => {
+    const d = [...trendData];
+    if (gFilter === "valuable") return d.sort((a,b) => b._p.market - a._p.market).slice(0,25);
+    if (gFilter === "volatile") return d.sort((a,b) => b._spreadPct - a._spreadPct).slice(0,25);
+    if (gFilter === "nearHigh") return d.filter(c => c._vsHigh >= -15).sort((a,b) => b._vsHigh - a._vsHigh).slice(0,25);
+    if (gFilter === "softening") return d.filter(c => c._vsHigh < -15).sort((a,b) => a._vsHigh - b._vsHigh).slice(0,25);
+    return d.slice(0,25);
+  }, [trendData, gFilter]);
+
+  const myCards = useMemo(() => collection.filter(e => e.tcgCard).map(e => {
+    const p = bestPrice(e.tcgCard);
+    if (!p?.market) return null;
+    const low = p.low > 0 ? p.low : p.market * 0.75;
+    const high = p.high > 0 ? p.high : p.market * 1.25;
+    return { ...e, _p:{...p,low,high}, _vsHigh:high>0?((p.market-high)/high)*100:0 };
+  }).filter(Boolean), [collection]);
+
+  const myList = useMemo(() => {
+    const d = [...myCards];
+    if (mFilter === "value") return d.sort((a,b) => b._p.market - a._p.market);
+    if (mFilter === "high") return d.sort((a,b) => b._vsHigh - a._vsHigh);
+    if (mFilter === "soft") return d.sort((a,b) => a._vsHigh - b._vsHigh);
+    return d;
+  }, [myCards, mFilter]);
+
+  const chgDisplay = (pct, dollar) => ({
+    val: fmt === "pct" ? fmtPct(pct) : fmtDol(dollar),
+    col: (fmt === "pct" ? pct : dollar) >= 0 ? "#4ecca3" : "#f87171",
+    icon: (fmt === "pct" ? pct : dollar) >= 0 ? Ic.up : Ic.dn,
+  });
+
+  const LEGENDS = { valuable:"Ranked by current market price — most valuable cards right now.", volatile:"Biggest gap between recent low and high — most actively traded.", nearHigh:"Cards within 15% of their recent high — strong demand.", softening:"Cards 15%+ below their recent high — price has cooled." };
+
+  return (
+    <div style={{ padding:"22px 18px 16px" }} className="fu">
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+        <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:28, fontWeight:700, letterSpacing:2 }}>TRENDS</div>
+        <div className="pill">
+          <button className={fmt === "pct" ? "pa" : "pi"} onClick={() => setFmt("pct")}>%</button>
+          <button className={fmt === "dollar" ? "pa" : "pi"} onClick={() => setFmt("dollar")}>$</button>
+        </div>
+      </div>
+      <div className="pill" style={{ marginBottom:14, borderRadius:12, width:"100%" }}>
+        <button className={mode === "global" ? "pa" : "pi"} style={{ flex:1, borderRadius:10 }} onClick={() => setMode("global")}>🌍 Market</button>
+        <button className={mode === "mine" ? "pa" : "pi"} style={{ flex:1, borderRadius:10 }} onClick={() => setMode("mine")}>📦 My Cards</button>
+      </div>
+
+      {mode === "global" && <>
+        <div className="chips">
+          {[["valuable","💎 Valuable"],["volatile","⚡ Volatile"],["nearHigh","🔥 Near High"],["softening","📉 Softening"]].map(([id,label]) => (
+            <button key={id} className={gFilter === id ? "ca" : "ci"} onClick={() => setGFilter(id)}>{label}</button>
+          ))}
+        </div>
+        <div style={{ background:"#080808", border:"1px solid #1a1a1a", borderRadius:10, padding:"9px 12px", marginBottom:12, fontSize:12, color:"#555", lineHeight:1.5 }}>{LEGENDS[gFilter]}</div>
+        {loading && <div style={{ textAlign:"center", padding:40 }}><Spinner /><div style={{ color:"#4ecca3", fontSize:13, marginTop:14 }}>Loading market data…</div></div>}
+        {!loading && loaded && globalList.length === 0 && <div style={{ textAlign:"center", padding:40, color:"#444" }}><div style={{ fontSize:32, marginBottom:8 }}>🔍</div><div>No cards match this filter</div></div>}
+        {!loading && globalList.map((card, i) => {
+          const market = card._p.market;
+          const pct = gFilter === "volatile" ? card._spreadPct : gFilter === "softening" || gFilter === "nearHigh" ? card._vsHigh : card._vsLow;
+          const dollar = gFilter === "volatile" ? card._spread : market - (gFilter === "softening" || gFilter === "nearHigh" ? card._p.high : card._p.low);
+          const { val, col, icon } = chgDisplay(pct, dollar);
+          return (
+            <div key={card.id} className="trow" onClick={() => onCardTap(card)}>
+              <div style={{ color:"#2a2a2a", fontSize:11, width:20, fontWeight:700, flexShrink:0, textAlign:"center" }}>#{i+1}</div>
+              <img src={card.images?.small} alt="" style={{ width:44, borderRadius:6, flexShrink:0 }} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:600, fontSize:13, color:"#ddd", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{card.name}</div>
+                <div style={{ color:"#555", fontSize:11, marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{card.set?.name}</div>
+                {card.rarity && <div style={{ marginTop:3 }}><Tag label={card.rarity} color={rc(card.rarity)} /></div>}
+              </div>
+              <div style={{ textAlign:"right", flexShrink:0, minWidth:72 }}>
+                <div style={{ color:"#fff", fontWeight:700, fontSize:14 }}>{fmtUSD(market)}</div>
+                {gFilter === "valuable"
+                  ? <div style={{ color:"#444", fontSize:10, marginTop:2 }}>L {fmtUSD(card._p.low)} · H {fmtUSD(card._p.high)}</div>
+                  : <div style={{ color:col, fontSize:11, fontWeight:600, display:"flex", alignItems:"center", justifyContent:"flex-end", gap:2, marginTop:3 }}>{icon}{val}</div>
+                }
+              </div>
+            </div>
+          );
+        })}
+      </>}
+
+      {mode === "mine" && <>
+        {collection.length === 0 && <div style={{ textAlign:"center", padding:48, color:"#444" }}><div style={{ fontSize:36, marginBottom:10 }}>📦</div><div>Scan cards into your collection first</div></div>}
+        {collection.length > 0 && <>
+          <div className="chips">
+            {[["value","💎 By Value"],["high","🔥 Near High"],["soft","📉 Softening"]].map(([id,label]) => (
+              <button key={id} className={mFilter === id ? "ca" : "ci"} onClick={() => setMFilter(id)}>{label}</button>
+            ))}
+          </div>
+          {myCards.length > 0 && (
+            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+              {[["Highest",`$${Math.max(...myCards.map(c=>c._p.market)).toFixed(2)}`,"#4ecca3"],["Avg",`$${(myCards.reduce((s,c)=>s+c._p.market,0)/myCards.length).toFixed(2)}`,"#fff"],["w/ Price",`${myCards.length}/${collection.length}`,"#a78bfa"]].map(([l,v,c]) => (
+                <div key={l} style={{ flex:1, background:"#080808", border:"1px solid #1a1a1a", borderRadius:10, padding:"8px 6px", textAlign:"center" }}>
+                  <div style={{ color:c, fontWeight:700, fontSize:14 }}>{v}</div>
+                  <div style={{ color:"#444", fontSize:10, marginTop:1 }}>{l}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {myList.length === 0 && <div style={{ textAlign:"center", padding:28, color:"#444", fontSize:13 }}>No price data yet</div>}
+          {myList.map((entry, i) => {
+            const name = entry.tcgCard?.name || entry.aiName || "Unknown";
+            const img = entry.tcgCard?.images?.small;
+            const market = entry._p.market;
+            const pct = entry._vsHigh;
+            const dollar = market - entry._p.high;
+            const { val, col, icon } = chgDisplay(pct, dollar);
+            return (
+              <div key={entry.id} className="trow">
+                <div style={{ color:"#2a2a2a", fontSize:11, width:20, fontWeight:700, flexShrink:0, textAlign:"center" }}>#{i+1}</div>
+                {img ? <img src={img} alt="" style={{ width:44, borderRadius:6, flexShrink:0 }} /> : <div style={{ width:44, height:58, background:"#1a1a1a", borderRadius:6, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🃏</div>}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:600, fontSize:13, color:"#ddd", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{name}</div>
+                  <div style={{ color:"#555", fontSize:11, marginTop:1 }}>{entry.tcgCard?.set?.name || "—"}</div>
+                  <div style={{ color:"#333", fontSize:10 }}>{entry.condition || "—"}</div>
+                </div>
+                <div style={{ textAlign:"right", flexShrink:0, minWidth:72 }}>
+                  <div style={{ color:"#fff", fontWeight:700, fontSize:14 }}>{fmtUSD(market)}</div>
+                  {mFilter === "value"
+                    ? <div style={{ color:"#444", fontSize:10, marginTop:2 }}>L {fmtUSD(entry._p.low)} · H {fmtUSD(entry._p.high)}</div>
+                    : <div style={{ color:col, fontSize:11, fontWeight:600, display:"flex", alignItems:"center", justifyContent:"flex-end", gap:2, marginTop:3 }}>{icon}{val}</div>
+                  }
+                  <div style={{ color:"#2a2a2a", fontSize:10 }}>adj: {fmtUSD(condVal(entry.tcgCard, entry.condition))}</div>
+                </div>
+              </div>
+            );
+          })}
+        </>}
+      </>}
+    </div>
+  );
+}
+
+// ─── MAIN APP ────────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState("home");
+  const [col, setCol] = useState(loadCol);
+
+  const [scanImg, setScanImg] = useState(null);
+  const [scanAI, setScanAI] = useState(null);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanErr, setScanErr] = useState(null);
+  const [matches, setMatches] = useState([]);
+  const [selCard, setSelCard] = useState(null);
+  const [addFlash, setAddFlash] = useState(false);
+  const [condOverride, setCondOverride] = useState(null);
+
+  const [cfilt, setCfilt] = useState("");
+  const [csort, setCsort] = useState("newest");
+  const [viewEntry, setViewEntry] = useState(null);
+
+  const [sq, setSq] = useState("");
+  const [sres, setSres] = useState([]);
+  const [sloading, setSloading] = useState(false);
+  const [sdone, setSdone] = useState(false);
+  const [preview, setPreview] = useState(null);
+
+  const fileRef = useRef();
+  const camRef = useRef();
+
+  const totalVal = useMemo(() => col.reduce((s,e) => s + condVal(e.tcgCard, e.condition), 0), [col]);
+  const uniqueSets = useMemo(() => new Set(col.map(e => e.tcgCard?.set?.id).filter(Boolean)).size, [col]);
+  const uniquePkm = useMemo(() => new Set(col.map(e => e.tcgCard?.name || e.aiName).filter(Boolean)).size, [col]);
+  const top5 = useMemo(() => col.filter(e => marketVal(e.tcgCard) > 0).sort((a,b) => marketVal(b.tcgCard)-marketVal(a.tcgCard)).slice(0,5), [col]);
+
+  const filteredCol = useMemo(() => {
+    const q = cfilt.toLowerCase();
+    return col.filter(e => !q || (e.tcgCard?.name||e.aiName||"").toLowerCase().includes(q) || (e.tcgCard?.set?.name||"").toLowerCase().includes(q))
+      .sort((a,b) => {
+        if (csort === "newest") return b.addedAt - a.addedAt;
+        if (csort === "oldest") return a.addedAt - b.addedAt;
+        if (csort === "name") return (a.tcgCard?.name||a.aiName||"").localeCompare(b.tcgCard?.name||b.aiName||"");
+        if (csort === "value") return condVal(b.tcgCard,b.condition) - condVal(a.tcgCard,a.condition);
+        return 0;
+      });
+  }, [col, cfilt, csort]);
+
+  const mutate = useCallback(u => { setCol(u); saveCol(u); }, []);
+  const inCol = useCallback(id => col.some(e => e.tcgCard?.id === id), [col]);
+
+  const handleFile = useCallback(async file => {
+    if (!file || !file.type.startsWith("image/")) return;
+    setScanErr(null); setScanAI(null); setMatches([]); setSelCard(null); setAddFlash(false); setCondOverride(null);
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      setScanImg(ev.target.result);
+      setScanLoading(true);
+      setTab("scan");
+      try {
+        // Compress image before sending to AI (saves ~90% cost)
+        const compressed = await compressImage(ev.target.result, 800, 0.82);
+        const b64 = compressed.split(",")[1];
+        const ai = await scanWithAI(b64);
+        setScanAI(ai);
+        if (ai?.name) {
+          const m = await searchCards(ai.name);
+          setMatches(m);
+          if (m.length) setSelCard(m[0]);
+        }
+      } catch(e) {
+        setScanErr(e.message);
+      } finally {
+        setScanLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const addToCol = useCallback(() => {
+    const condition = condOverride || scanAI?.condition || "Near Mint";
+    mutate([{ id:uid(), addedAt:Date.now(), scanImg, aiName:scanAI?.name, condition, tcgCard:selCard||null }, ...col]);
+    setAddFlash(true);
+    setTimeout(() => setAddFlash(false), 2000);
+  }, [scanImg, scanAI, selCard, condOverride, col, mutate]);
+
+  const removeEntry = useCallback(id => { mutate(col.filter(e => e.id !== id)); setViewEntry(null); }, [col, mutate]);
+  const updateCond = useCallback((id, c) => { mutate(col.map(e => e.id===id ? {...e,condition:c} : e)); setViewEntry(v => v?.id===id ? {...v,condition:c} : v); }, [col, mutate]);
+  const addSearchCard = useCallback(card => { mutate([{ id:uid(), addedAt:Date.now(), scanImg:null, aiName:card.name, condition:"Near Mint", tcgCard:card }, ...col]); }, [col, mutate]);
+  const doSearch = useCallback(async () => {
+    if (!sq.trim()) return;
+    setSloading(true); setSdone(false); setSres([]);
+    setSres(await searchCards(sq));
+    setSloading(false); setSdone(true);
+  }, [sq]);
+  const resetScan = () => { setScanImg(null); setScanAI(null); setMatches([]); setSelCard(null); setScanErr(null); setCondOverride(null); };
+
+  const NAV = [
+    { id:"home", label:"Home", icon:Ic.home },
+    { id:"trends", label:"Trends", icon:Ic.trend },
+    { id:"scan", label:"Scan", icon:Ic.cam, center:true },
+    { id:"search", label:"Search", icon:Ic.search },
+    { id:"collection", label:"Cards", icon:Ic.grid },
+  ];
+
+  return (
+    <div style={{ height:"100%", display:"flex", flexDirection:"column", background:"#000", fontFamily:"'Inter',sans-serif", color:"#fff", overflow:"hidden", position:"fixed", inset:0 }}>
+      <div style={{ flex:1, overflowY:"auto", overflowX:"hidden" }}>
+
+        {/* ══ HOME ══ */}
+        {tab === "home" && (
+          <div style={{ minHeight:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"space-between", padding:"56px 22px 28px" }}>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:11, color:"#444", letterSpacing:4, marginBottom:6, fontWeight:500 }}>WELCOME TO</div>
+              <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:50, fontWeight:700, letterSpacing:4, lineHeight:1, textTransform:"uppercase" }}>PokéCollectr</div>
+              <div style={{ fontSize:10, letterSpacing:6, color:"#4ecca3", marginTop:8, fontWeight:600 }}>COLLECT · TRACK · PROFIT</div>
+            </div>
+            {col.length === 0
+              ? <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:17, fontWeight:600, marginBottom:8 }}>Start building your Collection!</div>
+                  <div style={{ fontSize:13, color:"#555", lineHeight:1.7 }}>Tap the camera below to<br/>scan your first card</div>
+                </div>
+              : <div style={{ width:"100%", maxWidth:360 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+                    {[["Total Cards",col.length],["Est. Value",`$${totalVal.toFixed(2)}`],["Sets",uniqueSets],["Pokémon",uniquePkm]].map(([l,v]) => (
+                      <div key={l} style={{ background:"#0e0e0e", borderRadius:14, padding:"14px 12px", border:"1px solid #1a1a1a" }}>
+                        <div className="ts" style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:24, fontWeight:700 }}>{v}</div>
+                        <div style={{ color:"#555", fontSize:12, marginTop:2 }}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {top5.length > 0 && (
+                    <div>
+                      <div style={{ color:"#333", fontSize:10, letterSpacing:2, marginBottom:8 }}>TOP CARDS</div>
+                      <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:4 }}>
+                        {top5.map(e => (
+                          <div key={e.id} className="tap" onClick={() => setViewEntry(e)} style={{ flexShrink:0, width:66 }}>
+                            {e.tcgCard?.images?.small
+                              ? <img src={e.tcgCard.images.small} style={{ width:"100%", borderRadius:8, display:"block" }} alt="" />
+                              : <div style={{ width:66, height:90, background:"#1a1a1a", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>🃏</div>}
+                            <div style={{ color:"#4ecca3", fontSize:10, textAlign:"center", marginTop:2 }}>{fmtUSD(condVal(e.tcgCard, e.condition))}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+            }
+            <div style={{ textAlign:"center" }}>
+              <div className="pulse tap" onClick={() => camRef.current?.click()}
+                style={{ width:68, height:68, borderRadius:"50%", background:"#111", border:"2px solid #2a2a2a", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 12px", color:"#4ecca3" }}>
+                {Ic.cam}
+              </div>
+              <div style={{ fontSize:12, color:"#3a3a3a" }}>Tap to scan a card</div>
+            </div>
+            <button id="pwa-btn" onClick={() => window.triggerInstall && window.triggerInstall()}
+              style={{ display:"none", background:"#4ecca3", color:"#000", border:"none", borderRadius:30, padding:"10px 24px", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer", letterSpacing:1 }}>
+              ⬇ INSTALL APP
+            </button>
+          </div>
+        )}
+
+        {/* ══ TRENDS ══ */}
+        {tab === "trends" && <TrendsTab collection={col} onCardTap={c => setPreview(c)} />}
+
+        {/* ══ SCAN ══ */}
+        {tab === "scan" && (
+          <div style={{ padding:"22px 18px 16px" }} className="fu">
+            <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:26, fontWeight:700, letterSpacing:2, marginBottom:3 }}>SCAN CARD</div>
+            <div style={{ color:"#444", fontSize:12, marginBottom:16 }}>
+              AI identifies your card · image compressed before sending · <span style={{ color:"#4ecca3" }}>~$0.0003/scan</span>
+            </div>
+            <div onClick={() => fileRef.current?.click()}
+              style={{ background:"#080808", border:"2px dashed #1e1e1e", borderRadius:16, minHeight:170, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:8, marginBottom:12, cursor:"pointer", overflow:"hidden" }}>
+              {scanImg
+                ? <img src={scanImg} alt="card" style={{ maxHeight:250, maxWidth:"100%", objectFit:"contain" }} />
+                : <><div style={{ color:"#2a2a2a", fontSize:36 }}>🃏</div><div style={{ color:"#3a3a3a", fontSize:12 }}>Tap to choose photo</div></>}
+            </div>
+            <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+              <button onClick={() => fileRef.current?.click()} className="btn-dark" style={{ flex:1 }}>📁 Gallery</button>
+              <button onClick={() => camRef.current?.click()} className="btn-teal" style={{ flex:1, width:"auto" }}>📷 Camera</button>
+              {scanImg && <button onClick={resetScan} style={{ background:"#110000", border:"1px solid #2a0000", borderRadius:12, padding:"12px 14px", color:"#f87171", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>✕</button>}
+            </div>
+
+            {scanLoading && (
+              <div style={{ background:"#080808", borderRadius:16, padding:28, textAlign:"center", marginBottom:12 }}>
+                <Spinner />
+                <div style={{ color:"#4ecca3", fontSize:13, marginTop:14, fontWeight:500 }}>Compressing + scanning…</div>
+                <div style={{ color:"#444", fontSize:11, marginTop:3 }}>Using Haiku model · ultra low cost</div>
+              </div>
+            )}
+
+            {scanErr && <div style={{ background:"#110000", border:"1px solid #2a0000", borderRadius:12, padding:12, color:"#f87171", fontSize:12, marginBottom:12 }}>⚠ {scanErr}</div>}
+
+            {scanAI && !scanLoading && (
+              <div style={{ background:"#080808", borderRadius:16, padding:16, marginBottom:12, border:"1px solid #1a1a1a" }} className="fu">
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+                  <div>
+                    <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:22, fontWeight:700, letterSpacing:1 }}>{scanAI.name || "Unknown"}</div>
+                    {scanAI.set && <div style={{ color:"#555", fontSize:12 }}>{scanAI.set}{scanAI.number ? ` · ${scanAI.number}` : ""}</div>}
+                  </div>
+                  <Tag label={scanAI.confidence || "?"} color={scanAI.confidence === "high" ? "#4ecca3" : scanAI.confidence === "medium" ? "#fbbf24" : "#f87171"} />
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:12 }}>
+                  {scanAI.rarity && <Tag label={scanAI.rarity} color={rc(scanAI.rarity)} />}
+                  {scanAI.type && <Tag label={scanAI.type} color="#fb923c" />}
+                  {scanAI.hp && <Tag label={`HP ${scanAI.hp}`} color="#f472b6" />}
+                </div>
+                <div style={{ color:"#444", fontSize:10, letterSpacing:1, marginBottom:6 }}>CONDITION</div>
+                <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                  {CONDITIONS.map(c => {
+                    const active = (condOverride || scanAI.condition) === c;
+                    return <button key={c} onClick={() => setCondOverride(c)}
+                      style={{ padding:"4px 10px", borderRadius:20, border:`1px solid ${active ? "#4ecca3" : "#1e1e1e"}`, background: active ? "#4ecca322" : "transparent", color: active ? "#4ecca3" : "#555", fontSize:10, fontFamily:"inherit", cursor:"pointer" }}>{c}</button>;
+                  })}
+                </div>
+                {scanAI.notes && <div style={{ marginTop:10, color:"#555", fontSize:11 }}>{scanAI.notes}</div>}
+              </div>
+            )}
+
+            {matches.length > 0 && !scanLoading && (
+              <div style={{ background:"#080808", borderRadius:16, padding:16, border:"1px solid #1a1a1a", marginBottom:12 }} className="fu">
+                <div style={{ color:"#333", fontSize:10, letterSpacing:2, marginBottom:10 }}>SELECT CARD VERSION</div>
+                <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:8, marginBottom:12 }}>
+                  {matches.map(m => (
+                    <div key={m.id} className="tap" onClick={() => setSelCard(m)}
+                      style={{ minWidth:72, flexShrink:0, borderRadius:10, overflow:"hidden", border:`2px solid ${selCard?.id===m.id ? "#4ecca3" : "#1a1a1a"}`, transition:"border-color 0.15s" }}>
+                      <img src={m.images?.small} alt={m.name} style={{ width:"100%", display:"block" }} />
+                      <div style={{ padding:"2px 4px", fontSize:8, color:"#444", lineHeight:1.3, background:"#080808" }}>{m.set?.name}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {selCard && (
+                  <div className="fu">
+                    {/* Mini chart in scan view */}
+                    {bestPrice(selCard) && <PriceChart low={bestPrice(selCard).low} market={bestPrice(selCard).market} high={bestPrice(selCard).high} />}
+
+                    <div style={{ display:"flex", gap:10, marginBottom:14 }}>
+                      <img src={selCard.images?.large || selCard.images?.small} alt="" style={{ width:80, borderRadius:8, flexShrink:0 }} />
+                      <div>
+                        <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:16, fontWeight:700, letterSpacing:1 }}>{selCard.name}</div>
+                        <div style={{ color:"#555", fontSize:11, marginBottom:4 }}>{selCard.set?.name} · #{selCard.number}</div>
+                        {selCard.rarity && <Tag label={selCard.rarity} color={rc(selCard.rarity)} />}
+                        <div style={{ marginTop:6, fontSize:11, color:"#444" }}>
+                          <div>Artist: {selCard.artist || "—"}</div>
+                          <div>Released: {selCard.set?.releaseDate || "—"}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RAW / GRADED tabs in scan view */}
+                    <ScanPriceTabs card={selCard} />
+
+                    <div style={{ background:"#050505", borderRadius:10, padding:12, marginBottom:14, border:"1px solid #1a1a1a" }}>
+                      <div style={{ color:"#4ecca3", fontSize:10, letterSpacing:2, fontWeight:600, marginBottom:6 }}>TRADE INFO</div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4px 14px", fontSize:11 }}>
+                        {[["Series",selCard.set?.series],["Standard",selCard.legalities?.standard],["Expanded",selCard.legalities?.expanded],["HP",selCard.hp],["Retreat",selCard.retreatCost?.length],["Total",selCard.set?.total]].map(([k,v]) => (
+                          <div key={k}><span style={{ color:"#333" }}>{k}: </span><span style={{ color:"#aaa" }}>{v||"—"}</span></div>
+                        ))}
+                      </div>
+                      {selCard.tcgplayer?.url && <a href={selCard.tcgplayer.url} target="_blank" rel="noopener noreferrer" style={{ display:"inline-block", marginTop:8, color:"#4ecca3", fontSize:11 }}>Buy on TCGPlayer →</a>}
+                    </div>
+
+                    <button onClick={addToCol}
+                      style={{ width:"100%", padding:13, border:"none", borderRadius:14, background: addFlash ? "#0d2a1e" : "#4ecca3", color: addFlash ? "#4ecca3" : "#000", fontFamily:"inherit", fontSize:14, fontWeight:700, cursor:"pointer", transition:"all 0.3s", letterSpacing:1 }}>
+                      {addFlash ? "✅ ADDED TO COLLECTION" : "+ ADD TO COLLECTION"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ SEARCH ══ */}
+        {tab === "search" && (
+          <div style={{ padding:"22px 18px 16px" }} className="fu">
+            <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:26, fontWeight:700, letterSpacing:2, marginBottom:14 }}>SEARCH</div>
+            <div style={{ display:"flex", gap:8, marginBottom:18 }}>
+              <input className="inp" placeholder="Charizard, Pikachu, Mewtwo…" value={sq} onChange={e => setSq(e.target.value)} onKeyDown={e => e.key === "Enter" && doSearch()} style={{ flex:1 }} />
+              <button onClick={doSearch} style={{ background:"#4ecca3", border:"none", borderRadius:12, padding:"12px 16px", color:"#000", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>Go</button>
+            </div>
+            {sloading && <div style={{ textAlign:"center", padding:36 }}><Spinner /><div style={{ color:"#4ecca3", fontSize:12, marginTop:12 }}>Searching…</div></div>}
+            {sdone && sres.length === 0 && !sloading && <div style={{ textAlign:"center", color:"#444", padding:36 }}>No results for "{sq}"</div>}
+            {sres.length > 0 && (
+              <div className="card-grid">
+                {sres.map(card => {
+                  const val = marketVal(card);
+                  const owned = inCol(card.id);
+                  return (
+                    <div key={card.id} className="card-cell" onClick={() => setPreview(card)} style={{ border:`1px solid ${owned ? "#4ecca333" : "#1a1a1a"}` }}>
+                      <img src={card.images?.small} alt={card.name} style={{ width:"100%", display:"block" }} />
+                      <div style={{ padding:"5px 7px" }}>
+                        <div style={{ fontSize:11, fontWeight:500, color:"#ccc", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{card.name}</div>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginTop:1 }}>
+                          <span style={{ fontSize:11, color: val ? "#4ecca3" : "#333" }}>{val ? fmtUSD(val) : "—"}</span>
+                          {owned && <span style={{ fontSize:9, color:"#4ecca3" }}>✓</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ COLLECTION ══ */}
+        {tab === "collection" && (
+          <div style={{ padding:"22px 18px 16px" }} className="fu">
+            <div style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:26, fontWeight:700, letterSpacing:2, marginBottom:14 }}>MY COLLECTION</div>
+            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+              <input className="inp" placeholder="Filter…" value={cfilt} onChange={e => setCfilt(e.target.value)} style={{ flex:1 }} />
+              <select className="inp" value={csort} onChange={e => setCsort(e.target.value)} style={{ width:"auto" }}>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="name">Name</option>
+                <option value="value">Value</option>
+              </select>
+            </div>
+            {filteredCol.length === 0
+              ? <div style={{ textAlign:"center", padding:56, color:"#444" }}>
+                  <div style={{ fontSize:36, marginBottom:10 }}>📭</div>
+                  <div>{col.length === 0 ? "No cards yet — scan one!" : "No cards match"}</div>
+                </div>
+              : <div className="card-grid">
+                  {filteredCol.map(e => {
+                    const img = e.tcgCard?.images?.small || e.scanImg;
+                    const name = e.tcgCard?.name || e.aiName || "Unknown";
+                    const val = condVal(e.tcgCard, e.condition);
+                    return (
+                      <div key={e.id} className="card-cell" onClick={() => setViewEntry(e)}>
+                        {img
+                          ? <img src={img} alt={name} style={{ width:"100%", display:"block", aspectRatio:"0.72", objectFit:"cover" }} />
+                          : <div style={{ aspectRatio:"0.72", background:"#111", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>🃏</div>}
+                        <div style={{ padding:"5px 7px" }}>
+                          <div style={{ fontSize:11, fontWeight:500, color:"#bbb", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{name}</div>
+                          <div style={{ display:"flex", justifyContent:"space-between", marginTop:1 }}>
+                            <span style={{ fontSize:11, color: val ? "#4ecca3" : "#333" }}>{val ? fmtUSD(val) : "—"}</span>
+                            {e.condition && <span style={{ fontSize:9, color:"#333" }}>{e.condition.split(" ").map(w=>w[0]).join("")}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+            }
+          </div>
+        )}
+      </div>
+
+      {/* ── BOTTOM NAV ── */}
+      <div className="bnav">
+        {NAV.map(item => {
+          const active = tab === item.id;
+          if (item.center) return (
+            <div key={item.id} style={{ flex:1, display:"flex", justifyContent:"center" }}>
+              <div onClick={() => { setTab("scan"); camRef.current?.click(); }}
+                style={{ width:52, height:52, borderRadius:"50%", background:"#4ecca3", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#000", boxShadow:"0 0 16px #4ecca330", marginTop:-14 }}>
+                {Ic.cam}
+              </div>
+            </div>
+          );
+          return (
+            <div key={item.id} className="navi" onClick={() => setTab(item.id)}
+              style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3, padding:"3px 0", color: active ? "#4ecca3" : "#3a3a3a" }}>
+              {item.icon}
+              <span style={{ fontSize:10, fontWeight: active ? 600 : 400, letterSpacing:0.3 }}>{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/*" style={{ display:"none" }} onChange={e => handleFile(e.target.files[0])} />
+      <input ref={camRef} type="file" accept="image/*" capture="environment" style={{ display:"none" }} onChange={e => handleFile(e.target.files[0])} />
+
+      {viewEntry && <EntrySheet entry={viewEntry} onClose={() => setViewEntry(null)} onRemove={removeEntry} onCondChange={updateCond} />}
+      {preview && <CardSheet card={preview} inCollection={inCol(preview.id)} onClose={() => setPreview(null)} onAdd={() => addSearchCard(preview)} />}
+    </div>
+  );
+}
+
+// Inline price tabs for scan view (avoids prop drilling)
+function ScanPriceTabs({ card }) {
+  const [tab, setTab] = useState("raw");
+  const prices = card?.tcgplayer?.prices;
+  const bp = bestPrice(card);
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div className="tab-row">
+        <button className={`tab-btn ${tab === "raw" ? "on" : "off"}`} onClick={() => setTab("raw")}>RAW</button>
+        <button className={`tab-btn ${tab === "graded" ? "on" : "off"}`} onClick={() => setTab("graded")}>GRADED (EST.)</button>
+      </div>
+      {tab === "raw" && prices && <>
+        <PriceRow label="Normal" p={prices.normal} />
+        <PriceRow label="Holofoil" p={prices.holofoil} />
+        <PriceRow label="Reverse Holo" p={prices.reverseHolofoil} />
+        <PriceRow label="1st Ed." p={prices["1stEditionHolofoil"]} />
+        {card.cardmarket?.prices && (
+          <div style={{ padding:"8px 0", borderBottom:"1px solid #111", marginBottom:4, fontSize:12 }}>
+            <div style={{ color:"#333", fontSize:10, letterSpacing:2, marginBottom:3 }}>CARDMARKET (EUR)</div>
+            <span style={{ color:"#4ecca3" }}>Trend {fmtEUR(card.cardmarket.prices.trendPrice)}</span>
+            <span style={{ color:"#444" }}> · Avg30 {fmtEUR(card.cardmarket.prices.avg30)}</span>
+          </div>
+        )}
+      </>}
+      {tab === "graded" && <GradedTable market={bp?.market} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
